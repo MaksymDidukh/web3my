@@ -27,7 +27,7 @@
 
         /* САЙДБАР */
         .sidebar {
-            width: var(--sidebar-w);
+            width: auto;
             background: white;
             border-right: 1px solid #eee;
             display: flex;
@@ -50,12 +50,10 @@
         }
 
         .nav-item {
-            /* Адаптация под размер текста */
             width: fit-content;
             min-width: 120px;
-            margin: 0 auto 10px auto; /* Центрирование и отступ вниз */
+            margin: 0 auto 10px auto;
             padding: 8px 16px;
-            
             border: 2px solid transparent;
             border-radius: 12px;
             text-align: center;
@@ -66,10 +64,9 @@
             transition: all 0.2s ease;
             background: rgba(255, 255, 255, 0.5);
             display: block;
-            white-space: nowrap; /* Чтобы текст не переносился */
+            white-space: nowrap;
         }
 
-        /* Эффект наведения */
         .nav-item:hover {
             background: currentColor !important;
             color: white !important;
@@ -77,7 +74,6 @@
             border-color: transparent !important;
         }
 
-        /* Эффект нажатия */
         .nav-item:active {
             transform: scale(0.95);
             opacity: 0.8;
@@ -154,24 +150,42 @@
             text-align: center;
         }
 
+        /* АДАПТИВ ДЛЯ ТЕЛЕФОНОВ */
         @media (max-width: 768px) {
             body { flex-direction: column; }
+            
             .sidebar { 
                 width: 100%; 
                 height: auto; 
-                max-height: 120px; 
+                max-height: 80px; 
                 flex-direction: row; 
                 overflow-x: auto; 
+                overflow-y: hidden;
                 padding: 10px; 
                 align-items: center;
+                gap: 10px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none; /* Скрыть скролл в Firefox */
             }
+
+            .sidebar::-webkit-scrollbar {
+                display: none; /* Скрыть скролл в Chrome/Safari */
+            }
+
             .nav-item { 
-                margin: 0 5px; 
+                margin: 0; 
                 min-width: fit-content; 
+                flex-shrink: 0; /* Запрещаем сжиматься кнопкам */
                 display: inline-block;
+                font-size: 10px;
+                padding: 10px 15px;
             }
-            .viewport-container { height: calc(100vh - 120px); }
-            .sidebar h2 { display: none; } /* Скрываем заголовок на мобилках для экономии места */
+
+            .viewport-container { 
+                height: calc(100vh - 80px); 
+            }
+
+            .sidebar h2, .sidebar-footer { display: none; }
         }
     </style>
 </head>
@@ -190,7 +204,6 @@
         <div class="nav-item" data-url="https://multichat3dcube.netlify.app/">MultiChat3DCube</div>
         <div class="nav-item" data-url="https://drawingtogether3d.netlify.app/">DrawingTogether3D</div>
         <div class="nav-item" data-url="https://vectorgeometry.netlify.app/">VectorGeometry</div>
-        
         
         <div class="nav-item" data-url="https://web3video.netlify.app">Video Full</div>
         <div class="nav-item" data-url="https://web3audio.netlify.app">Audio Fun</div>
@@ -213,7 +226,6 @@
         <div class="nav-item" data-url="https://wavescreen.netlify.app/">WaveScreen</div>
         <div class="nav-item" data-url="https://agka.netlify.app/">Game: AGKA</div>
         <div class="nav-item" data-url="https://natokinaseninja3d.netlify.app/">Game: NATOKINASENINJA3D</div>
-        
         
         <div class="nav-item" data-url="https://web3cp.netlify.app/" style="color: #00FF41; border: 2px solid #00FF41; background: rgba(0, 255, 65, 0.1);" data-static="true">Donate</div>
         <div class="nav-item" data-url="https://symbolpart.netlify.app/">SymbolPart</div>
@@ -243,7 +255,6 @@
     </div>
     
     <script>
-        // Рандом цветов
         function getRandomColor() {
             const h = Math.floor(Math.random() * 360);
             return `hsl(${h}, 75%, 45%)`;
@@ -259,7 +270,6 @@
             });
         }
 
-        // Навигация и копирование
         const iframe = document.getElementById("myIframe");
         const label = document.getElementById("frameLabel");
         const externalLink = document.getElementById("externalLink");
@@ -289,57 +299,43 @@
         });
 
         applyRandomColors();
-// Название класса, в котором будут летать кружки
-const targetClass = '.sidebar'; 
 
-function initParticles(className, count = 30) {
-    // Находим все блоки с этим классом
-    const containers = document.querySelectorAll(className);
-
-    containers.forEach(box => {
-        // Чтобы кружки не вылетали за границы, принудительно ставим стили контейнеру
-        box.style.position = "relative";
-        box.style.overflow = "hidden";
-
-        for (let i = 0; i < count; i++) {
-            const c = document.createElement("div");
-
-            // Стили кружка
-            const size = Math.random() * 20 + 5;
-            Object.assign(c.style, {
-                position: "absolute",
-                left: Math.random() * 100 + "%",
-                top: Math.random() * 100 + "%",
-                width: size + "px",
-                height: size + "px",
-                borderRadius: "50%",
-                background: `hsl(${Math.random() * 360}, 70%, 60%)`,
-                opacity: "0.7",
-                pointerEvents: "none"
-            });
-
-            box.appendChild(c);
-
-            // Анимация полета
-            c.animate([
-                { transform: 'translate(0, 0)' },
-                { transform: `translate(${Math.random() * 80 - 40}px, ${Math.random() * 80 - 40}px)` }
-            ], {
-                duration: Math.random() * 3000 + 2000,
-                direction: 'alternate',
-                iterations: Infinity,
-                easing: 'ease-in-out'
+        const targetClass = '.sidebar'; 
+        function initParticles(className, count = 30) {
+            const containers = document.querySelectorAll(className);
+            containers.forEach(box => {
+                box.style.position = "relative";
+                for (let i = 0; i < count; i++) {
+                    const c = document.createElement("div");
+                    const size = Math.random() * 20 + 5;
+                    Object.assign(c.style, {
+                        position: "absolute",
+                        left: Math.random() * 100 + "%",
+                        top: Math.random() * 100 + "%",
+                        width: size + "px",
+                        height: size + "px",
+                        borderRadius: "50%",
+                        background: `hsl(${Math.random() * 360}, 70%, 60%)`,
+                        opacity: "0.4",
+                        pointerEvents: "none",
+                        zIndex: "-1"
+                    });
+                    box.appendChild(c);
+                    c.animate([
+                        { transform: 'translate(0, 0)' },
+                        { transform: `translate(${Math.random() * 80 - 40}px, ${Math.random() * 80 - 40}px)` }
+                    ], {
+                        duration: Math.random() * 3000 + 2000,
+                        direction: 'alternate',
+                        iterations: Infinity,
+                        easing: 'ease-in-out'
+                    });
+                }
             });
         }
-    });
-}
-
-// Запуск
-initParticles(targetClass, 40);
-
+        initParticles(targetClass, 20);
     </script>
     <script src="https://dmamax.netlify.app/legal-module.js"></script>
-    
 </body>
-  </html>
-  
+        </html>
+            
