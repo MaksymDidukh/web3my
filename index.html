@@ -10,6 +10,7 @@
             --vanille: #fefdf5;
             --turquoise: #40e0d0;
             --text: #2c3e50;
+            --sidebar-width: 13%; 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -21,11 +22,13 @@
             height: 100vh;
             display: flex;
             overflow: hidden;
+            user-select: none; 
         }
 
         .sidebar {
-            flex: 0 0 13%;
+            width: var(--sidebar-width);
             min-width: 120px;
+            max-width: 70vw; /* Увеличено для мобильных */
             background: white;
             border-right: 1px solid #eee;
             display: flex;
@@ -34,6 +37,31 @@
             z-index: 100;
             overflow-y: auto;
             overflow-x: hidden;
+        }
+
+        /* АДАПТИРОВАННЫЙ РЕСАЙЗЕР */
+        .resizer {
+            width: 6px;
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s;
+            z-index: 101;
+            position: relative;
+            touch-action: none; /* Важно для мобильных: отключает системный скролл при перетаскивании */
+        }
+
+        /* Невидимая область захвата для пальца */
+        .resizer::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -10px;
+            right: -10px;
+        }
+
+        .resizer:hover, .resizer.dragging {
+            background: var(--turquoise);
         }
 
         .sidebar h2 { 
@@ -75,7 +103,7 @@
         
         .nav-item {
             position: relative;
-            padding: 5px 45px 5px 6px; /* Место под две кнопки справа */
+            padding: 5px 45px 5px 6px;
             border: 1px solid #eee;
             border-radius: 4px;
             font-size: 9px;
@@ -91,7 +119,6 @@
         .nav-item:hover { transform: translateX(2px); background: #fafafa; }
         .nav-item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* Кнопки внутри пунктов меню */
         .item-action-btn {
             position: absolute;
             top: 50%;
@@ -118,6 +145,8 @@
             padding: 6px;
             align-content: start;
         }
+
+        .viewport-container.resizing iframe { pointer-events: none; }
 
         .frame-section {
             position: relative;
@@ -168,7 +197,7 @@
 </head>
 <body>
 
-    <nav class="sidebar">
+    <nav class="sidebar" id="sidebar">
         <h2>WEB3 - DASHBOARD</h2>
         <div class="grid-controls">
             <label>Меню:</label>
@@ -213,20 +242,65 @@
             <div class="nav-item" data-url="https://symbolpart.netlify.app/">SymbolPart</div>
             <div class="nav-item" data-url="https://web3cp.netlify.app/" style="color: #00FF41 !important;">Donate</div>
             <div class="nav-item" data-url="https://muvecollagefoto.vercel.app/">MuveCollageFoto</div>
-           
             <div class="nav-item" data-url="https://aiimageformatreizer.vercel.app/" style="color: blue !important;">AIImageFormatReizer</div>
         </div>
         
         <div class="sidebar-footer">MAKSYM DIDUKH © 2026</div>
     </nav>
+
+    <div class="resizer" id="resizer"></div>
     
     <div class="viewport-container" id="viewport"></div>
     
     <script>
     const viewport = document.getElementById("viewport");
+    const sidebar = document.getElementById("sidebar");
+    const resizer = document.getElementById("resizer");
     const addBtn = document.getElementById("addBlankFrame");
 
-    // --- 1. ФУНКЦИЯ СОЗДАНИЯ ОКНА ---
+    // --- УНИВЕРСАЛЬНАЯ ЛОГИКА РЕЗАЙЗА (MOUSE + TOUCH) ---
+    let isResizing = false;
+
+    const startResizing = (e) => {
+        isResizing = true;
+        resizer.classList.add('dragging');
+        viewport.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+    };
+
+    const stopResizing = () => {
+        isResizing = false;
+        resizer.classList.remove('dragging');
+        viewport.classList.remove('resizing');
+        document.body.style.cursor = 'default';
+    };
+
+    const handleMove = (clientX) => {
+        if (!isResizing) return;
+        // Ограничения для мобильных и ПК
+        const minWidth = 80;
+        const maxWidth = window.innerWidth * 0.7;
+        if (clientX > minWidth && clientX < maxWidth) {
+            sidebar.style.width = clientX + 'px';
+        }
+    };
+
+    // Мышь
+    resizer.addEventListener('mousedown', startResizing);
+    document.addEventListener('mousemove', (e) => handleMove(e.clientX));
+    document.addEventListener('mouseup', stopResizing);
+
+    // Тач (телефон)
+    resizer.addEventListener('touchstart', startResizing, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+        if (isResizing && e.touches[0]) {
+            handleMove(e.touches[0].clientX);
+        }
+    }, { passive: false });
+    document.addEventListener('touchend', stopResizing);
+
+
+    // --- ФУНКЦИИ ИНТЕРФЕЙСА ---
     function createFrame(url, title) {
         const section = document.createElement("div");
         section.className = "frame-section";
@@ -252,33 +326,22 @@
         viewport.appendChild(section);
     }
 
-    // --- 2. НАСТРОЙКА ПУНКТОВ МЕНЮ ---
     document.querySelectorAll(".nav-item").forEach(item => {
         const url = item.getAttribute("data-url");
         const title = item.textContent;
-
-        // Рандомный цвет левой полоски
         const hue = Math.floor(Math.random() * 360);
         if(!item.style.color) item.style.borderLeft = `3px solid hsl(${hue}, 70%, 50%)`;
 
-        // Оборачиваем текст в span
         item.innerHTML = `<span>${title}</span>`;
 
-        // Кнопка внешнего открытия
         const extBtn = document.createElement('button');
         extBtn.innerHTML = '↗';
         extBtn.className = 'item-action-btn btn-ext';
-        extBtn.title = 'Открыть в новой вкладке';
-        extBtn.onclick = (e) => {
-            e.stopPropagation();
-            window.open(url, '_blank');
-        };
+        extBtn.onclick = (e) => { e.stopPropagation(); window.open(url, '_blank'); };
 
-        // Кнопка копирования
         const copyBtn = document.createElement('button');
         copyBtn.innerHTML = '📋';
         copyBtn.className = 'item-action-btn btn-copy';
-        copyBtn.title = 'Копировать ссылку';
         copyBtn.onclick = (e) => {
             e.stopPropagation();
             navigator.clipboard.writeText(url).then(() => {
@@ -291,9 +354,7 @@
         item.appendChild(extBtn);
         item.appendChild(copyBtn);
 
-        // Основной клик (создание фрейма)
         item.onclick = (e) => {
-            // Если кликнули по кнопкам внутри, ничего не делаем (уже обработано stopPropagation)
             if (e.target.tagName !== 'BUTTON') {
                 createFrame(url, title);
                 viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
@@ -301,11 +362,9 @@
         };
     });
 
-    // --- 3. ФУНКЦИИ УПРАВЛЕНИЯ ФРЕЙМАМИ ---
     function resizeWidth(btn) {
         const section = btn.closest('.frame-section');
-        const currentStyle = section.style.gridColumn;
-        const currentSpan = currentStyle ? parseInt(currentStyle.split(' ')[1]) : 6;
+        const currentSpan = section.style.gridColumn ? parseInt(section.style.gridColumn.split(' ')[1]) : 6;
         const sizes = [3, 4, 6, 8, 12];
         let nextIndex = (sizes.indexOf(currentSpan) + 1) % sizes.length;
         section.style.gridColumn = `span ${sizes[nextIndex]}`;
@@ -313,8 +372,7 @@
 
     function resizeHeight(btn) {
         const section = btn.closest('.frame-section');
-        const currentStyle = section.style.gridRow;
-        const currentSpan = currentStyle ? parseInt(currentStyle.split(' ')[1]) : 2;
+        const currentSpan = section.style.gridRow ? parseInt(section.style.gridRow.split(' ')[1]) : 2;
         const sizes = [1, 2, 3, 4, 6];
         let nextIndex = (sizes.indexOf(currentSpan) + 1) % sizes.length;
         section.style.gridRow = `span ${sizes[nextIndex]}`;
@@ -334,16 +392,13 @@
 
     addBtn.onclick = () => createFrame("https://web3my.vercel.app", "Empty");
 
-    // Начальные окна
     window.onload = () => {
         createFrame("https://multichat3dcube.netlify.app/","3DCubeChat");
         createFrame("https://natokinaseninja3d.netlify.app/","NatokinaseNinja3D");
         createFrame("https://web3my.vercel.app/", "Web3My");
     };
-</script>
-
+    </script>
 <script src="https://dmamax.netlify.app/legal-module.js"></script>
 
 </body>
-                </html>
-    
+</html>
