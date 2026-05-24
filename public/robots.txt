@@ -3,5 +3,5 @@ Allow: /
 Disallow: /admin/
 Disallow: /search?
 
-Sitemap: https://tpboh.vercel.app/sitemap.xml
+Sitemap: https://tpbov.vercel.app/sitemap.xml
 
