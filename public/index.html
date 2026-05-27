@@ -495,99 +495,93 @@
 
 
 
-     // --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ЗАДНЕГО ПЛАНА (СТОПРОЦЕНТНЫЙ КЛИК НА СКОЗЬ) ---
+     // --- ФИНАЛЬНАЯ ВЕРСИЯ С ДВУМЯ КОНТРОЛЛЕРАМИ И 100% КЛИКАМИ НАСКВОЗЬ ---
 function initAdvancedGlassBackground() {
+    // Подготовка рабочей области
     viewport.style.position = 'relative';
     viewport.style.background = 'transparent';
     viewport.style.zIndex = '2';
     document.body.style.background = '#010409';
 
+    // Базовые стили для управления эффектами
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Матовое стекло для окон */
+        /* Стеклянные карточки по умолчанию */
         .frame-section {
             background: rgba(22, 27, 34, 0.4) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            transition: opacity 0.2s, transform 0.2s;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: border-color 0.25s, box-shadow 0.25s, opacity 0.2s;
         }
 
         .frame-section iframe { 
             background: transparent !important;
-            opacity: 0.65;
+            opacity: 0.75;
             transition: opacity 0.2s;
         }
-        
-        /* РЕЖИМ КЛИКА НА СКОЗЬ: Полностью отключаем pointer-events у окон И их внутренних iframe */
-        .viewport-container.click-through .frame-section,
-        .viewport-container.click-through .frame-section iframe {
-            pointer-events: none !important; 
+
+        /* Абсолютный невидимый слой поверх iframe для перехвата и пропускания кликов */
+        .click-shield {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 40;
+            display: none;
+            pointer-events: none;
         }
         
-        /* Возвращаем видимость кликов для плашки управления (чтобы можно было двигать/закрывать окна) */
+        /* РЕЖИМ КЛИКА НА СКВОЗЬ */
+        .viewport-container.click-through .frame-section {
+            pointer-events: none !important; 
+            border: 1px dashed var(--turquoise) !important;
+            box-shadow: 0 0 15px rgba(64, 224, 208, 0.15);
+        }
+
+        /* Активируем невидимый щит, который блокирует фокус iframe, позволяя кликать сквозь него */
+        .viewport-container.click-through .click-shield {
+            display: block !important;
+        }
+        
+        /* Кнопки управления окнами ВСЕГДА остаются кликабельными */
         .viewport-container.click-through .controls-wrapper,
         .viewport-container.click-through .controls-wrapper button {
             pointer-events: auto !important;
         }
 
-        /* Индикация активного сквозного режима */
-        .viewport-container.click-through .frame-section {
-            opacity: 0.35;
-            border-style: dashed;
-            border-color: var(--turquoise);
-        }
-
-        /* Панель управления в сайдбаре */
+        /* Стили новой панели управления в сайдбаре */
         .bg-controls {
-            background: rgba(64, 224, 208, 0.07);
-            padding: 10px;
+            background: rgba(64, 224, 208, 0.05);
+            padding: 12px 10px;
             border-radius: 8px;
             margin-bottom: 15px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            border: 1px solid rgba(64, 224, 208, 0.25);
+            gap: 10px;
+            border: 1px solid rgba(64, 224, 208, 0.2);
             z-index: 102;
             position: relative;
         }
-        .bg-controls label { font-size: 8px; font-weight: bold; color: var(--turquoise); text-transform: uppercase; }
+        .bg-controls label { font-size: 8px; font-weight: bold; color: var(--turquoise); text-transform: uppercase; letter-spacing: 0.5px; }
         
         .bg-select {
-            background: #161b22;
-            color: #eee;
-            border: 1px solid #30363d;
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 10px;
-            width: 100%;
-            cursor: pointer;
+            background: #161b22; color: #eee; border: 1px solid #30363d;
+            padding: 5px; border-radius: 4px; font-size: 10px; width: 100%; cursor: pointer;
+            outline: none;
         }
+        .bg-select:focus { border-color: var(--turquoise); }
         
-        .bg-range-container {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            font-size: 9px;
-            color: #aaa;
-        }
+        .bg-range-container { display: flex; flex-direction: column; gap: 4px; font-size: 9px; color: #aaa; }
         .bg-range-header { display: flex; justify-content: space-between; }
-        .bg-range { width: 100%; cursor: pointer; accent-color: var(--turquoise); }
+        .bg-range { width: 100%; cursor: pointer; accent-color: var(--turquoise); height: 4px; }
 
         .toggle-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 10px;
-            color: #eee;
-            margin-top: 4px;
-            padding-top: 4px;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 10px; color: #eee; margin-top: 4px; padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.08);
         }
         .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
-            position: absolute; cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
             background-color: #30363d; transition: .3s; border-radius: 18px;
         }
         .slider:before {
@@ -599,17 +593,14 @@ function initAdvancedGlassBackground() {
     `;
     document.head.appendChild(style);
 
-    // Фоновый iframe
+    // Добавляем фоновый iframe в DOM структуру
     const bgIframe = document.createElement('iframe');
     bgIframe.id = 'globalBgIframe';
     bgIframe.src = 'https://galacticpages.vercel.app/'; 
     bgIframe.style.position = 'absolute';
-    bgIframe.style.top = '0';
-    bgIframe.style.left = '0';
-    bgIframe.style.width = '100%';
-    bgIframe.style.height = '100%';
-    bgIframe.style.border = 'none';
-    bgIframe.style.zIndex = '1';
+    bgIframe.style.top = '0'; bgIframe.style.left = '0';
+    bgIframe.style.width = '100%'; bgIframe.style.height = '100%';
+    bgIframe.style.border = 'none'; bgIframe.style.zIndex = '1';
     bgIframe.style.background = '#010409';
     
     const viewportWrapper = document.createElement('div');
@@ -621,8 +612,29 @@ function initAdvancedGlassBackground() {
     viewportWrapper.appendChild(bgIframe);
     viewportWrapper.appendChild(viewport);
 
-    // Сборка списка сайтов
-    let optionsHtml = `<option value="https://galacticpages.vercel.app/">GalacticPages (По умолч.)</option>`;
+    // Модифицируем функцию создания окон, чтобы внутри автоматически генерировался защитный слой (click-shield)
+    const originalCreateFrame = window.createFrame;
+    window.createFrame = function(url, title) {
+        originalCreateFrame(url, title);
+        const lastSection = viewport.lastElementChild;
+        if (lastSection && lastSection.classList.contains('frame-section')) {
+            const shield = document.createElement('div');
+            shield.className = 'click-shield';
+            lastSection.appendChild(shield);
+        }
+    };
+
+    // Применяем щиты к уже созданным при старте окнам
+    document.querySelectorAll('.frame-section').forEach(section => {
+        if (!section.querySelector('.click-shield')) {
+            const shield = document.createElement('div');
+            shield.className = 'click-shield';
+            section.appendChild(shield);
+        }
+    });
+
+    // Собираем массив существующих сайтов из левой панели
+    let optionsHtml = `<option value="https://multichat3dcube.netlify.app/">MultiChat3DCube (По умолч.)</option>`;
     document.querySelectorAll('.nav-item').forEach(item => {
         const url = item.getAttribute('data-url');
         const name = item.querySelector('span') ? item.querySelector('span').textContent : item.textContent;
@@ -632,18 +644,27 @@ function initAdvancedGlassBackground() {
     });
     optionsHtml += `<option value="CUSTOM">-- Свой URL --</option>`;
 
+    // Рендерим панель управления в сайдбаре
     const bgControlsBlock = document.createElement('div');
     bgControlsBlock.className = 'bg-controls';
     bgControlsBlock.innerHTML = `
-        <label>Задний план (Стекло)</label>
+        <label>Задний план</label>
         <select class="bg-select" id="bgSiteSelect">${optionsHtml}</select>
         
         <div class="bg-range-container">
             <div class="bg-range-header">
                 <span>Прозрачность окон:</span>
-                <span id="rangeVal">65%</span>
+                <span id="opacityVal">75%</span>
             </div>
-            <input type="range" class="bg-range" id="bgOpacityRange" min="0" max="100" value="65">
+            <input type="range" class="bg-range" id="bgOpacityRange" min="0" max="100" value="75">
+        </div>
+
+        <div class="bg-range-container">
+            <div class="bg-range-header">
+                <span>Размытие стекла:</span>
+                <span id="blurVal">10px</span>
+            </div>
+            <input type="range" class="bg-range" id="bgBlurRange" min="0" max="30" value="10">
         </div>
 
         <div class="toggle-container">
@@ -660,9 +681,12 @@ function initAdvancedGlassBackground() {
         gridControls.parentNode.insertBefore(bgControlsBlock, gridControls.nextSibling);
     }
 
+    // Инициализация элементов управления и логики
     const bgSelect = document.getElementById('bgSiteSelect');
     const opacityRange = document.getElementById('bgOpacityRange');
-    const rangeVal = document.getElementById('rangeVal');
+    const opacityVal = document.getElementById('opacityVal');
+    const blurRange = document.getElementById('bgBlurRange');
+    const blurVal = document.getElementById('blurVal');
     const clickToggle = document.getElementById('clickThroughToggle');
 
     bgSelect.addEventListener('change', (e) => {
@@ -679,19 +703,31 @@ function initAdvancedGlassBackground() {
         }
     });
 
-    const opacityStyle = document.createElement('style');
-    document.head.appendChild(opacityStyle);
+    // Динамический стиль для управления ползунками в реальном времени
+    const dynamicFXStyle = document.createElement('style');
+    document.head.appendChild(dynamicFXStyle);
 
-    opacityRange.addEventListener('input', (e) => {
-        const val = e.target.value;
-        rangeVal.textContent = val + '%';
-        opacityStyle.innerHTML = `
-            .frame-section { background: rgba(22, 27, 34, ${val / 100 * 0.6}) !important; }
-            .frame-section iframe { opacity: ${val / 100} !important; }
+    function updateFilters() {
+        const oValue = opacityRange.value;
+        const bValue = blurRange.value;
+        opacityVal.textContent = oValue + '%';
+        blurVal.textContent = bValue + 'px';
+
+        dynamicFXStyle.innerHTML = `
+            .frame-section { 
+                background: rgba(22, 27, 34, ${(oValue / 100) * 0.5}) !important; 
+                backdrop-filter: blur(${bValue}px) !important;
+                -webkit-backdrop-filter: blur(${bValue}px) !important;
+            }
+            .frame-section iframe { opacity: ${oValue / 100} !important; }
         `;
-    });
+    }
 
-    // Изменение логики тумблера: теперь прокидываем pointer-events: none на уровень самого iframe!
+    opacityRange.addEventListener('input', updateFilters);
+    blurRange.addEventListener('input', updateFilters);
+    updateFilters(); // Вызываем стартовую настройку
+
+    // Переключатель сквозного режима
     clickToggle.addEventListener('change', (e) => {
         if (e.target.checked) {
             viewport.classList.add('click-through');
@@ -701,8 +737,9 @@ function initAdvancedGlassBackground() {
     });
 }
 
+// Запуск системы бэкграунда
 initAdvancedGlassBackground();
-                                  
+     
     </script>
 <script src="https://dmamax.netlify.app/legal-module.js"></script>
 
