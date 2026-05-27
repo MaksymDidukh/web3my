@@ -368,7 +368,7 @@
     const handleMove = (clientX) => {
         if (!isResizing) return;
         // Ограничения для мобильных и ПК
-        const minWidth = 120; // Увеличена минимальная ширина
+        const minWidth = 7; // Увеличена минимальная ширина
         const maxWidth = window.innerWidth * 0.7;
         if (clientX > minWidth && clientX < maxWidth) {
             sidebar.style.width = clientX + 'px';
