@@ -6,4 +6,4 @@ Disallow: /config/
 Disallow: /*?_rsc= # Блокирует технические запросы Next.js (если используете его)
 
 # Указываем поисковикам путь к карте сайта
-Sitemap: https://tpbov.vercel.app/sitemap.xml
+Sitemap: https://galacticpages.vercel.app/sitemap.xml
