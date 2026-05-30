@@ -3,24 +3,24 @@
   
   <!-- Главная страница сайта -->
   <url>
-    <loc>https://basqij.vercel.app/</loc>
-    <lastmod>2026-05-28</lastmod>
+    <loc>https://tyavkich.vercel.app/</loc>
+    <lastmod>2026-05-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
 
   <!-- Пример страницы со списком всех игр (если есть) -->
   <url>
-    <loc>https://basqij.vercel.app/games</loc>
-    <lastmod>2026-05-28</lastmod>
+    <loc>https://tyavkich.vercel.app/games</loc>
+    <lastmod>2026-05-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <!-- Пример страницы конкретной Web3 игры -->
   <url>
-    <loc>https://basqij.vercel.app/games/web3-space-adventure</loc>
-    <lastmod>2026-05-28</lastmod>
+    <loc>https://tyavkich.vercel.app/games/web3-space-adventure</loc>
+    <lastmod>2026-05-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
