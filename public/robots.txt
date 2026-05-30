@@ -6,4 +6,4 @@ Disallow: /config/
 Disallow: /*?_rsc= # Блокирует технические запросы Next.js (если используете его)
 
 # Указываем поисковикам путь к карте сайта
-Sitemap: https://basqij.vercel.app/sitemap.xml
+Sitemap: https://tyavkich.vercel.app/sitemap.xml
