@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+    <title>imuala: Битва Фракций PRO Max + Чат</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; user-select: none; background: #0f172a; touch-action: none; }
+        #ui {
+            position: absolute; top: 15px; left: 15px; color: white;
+            background: rgba(15, 23, 42, 0.95); padding: 20px; border-radius: 12px;
+            border: 1px solid #334155; width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 10;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 18px; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; }
+        p { margin: 6px 0; font-size: 13px; color: #cbd5e1; }
+        .gold-panel { font-size: 20px; font-weight: bold; color: #fbbf24; margin-bottom: 10px; }
+        .btn-group { display: flex; gap: 8px; margin: 12px 0; }
+        .btn {
+            flex: 1; background: #10b981; color: white; border: none;
+            padding: 10px 5px; border-radius: 6px; font-weight: bold;
+            cursor: pointer; font-size: 11px; transition: background 0.2s;
+        }
+        .btn:hover { background: #059669; }
+        .btn-blue { background: #0284c7; }
+        .btn-blue:hover { background: #0369a1; }
+        #bars { margin-top: 15px; padding-top: 10px; border-top: 1px solid #334155; max-height: 160px; overflow-y: auto; }
+        .hp-bar-ui { font-weight: bold; font-size: 12px; margin: 4px 0; }
+        
+        /* СТИЛИ ИГРОВОГО ЧАТА */
+        #chat-container {
+            position: absolute; bottom: 50px; left: 15px; width: 320px; height: 220px;
+            background: rgba(15, 23, 42, 0.9); border: 1px solid #334155;
+            border-radius: 10px; display: none; flex-direction: column; z-index: 15; overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+        #chat-messages {
+            flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+        }
+        .chat-msg { font-size: 12px; line-height: 15px; word-break: break-word; color: #e2e8f0; }
+        .chat-msg-system { color: #38bdf8; font-style: italic; font-weight: bold; }
+        #chat-input-area { display: flex; border-top: 1px solid #334155; background: #1e293b; }
+        #chat-input {
+            flex: 1; background: transparent; border: none; padding: 8px 12px;
+            color: white; font-size: 13px; outline: none;
+        }
+        #chat-send-btn {
+            background: #38bdf8; border: none; color: #0f172a; padding: 0 14px;
+            font-weight: bold; font-size: 12px; cursor: pointer;
+        }
+        #chat-send-btn:hover { background: #0ea5e9; }
+
+        #end-screen {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95); z-index: 100;
+            justify-content: center; align-items: center; flex-direction: column;
+            color: white; font-size: 28px; font-weight: bold; text-align: center; padding: 20px; box-sizing: border-box;
+        }
+        #end-screen button {
+            margin-top: 20px; padding: 12px 28px; font-size: 16px;
+            background: #38bdf8; color: #0f172a; border: none; border-radius: 6px;
+            font-weight: bold; cursor: pointer;
+        }
+        .select-box {
+            border: 2px dashed #facc15; background: rgba(250, 204, 21, 0.1);
+            position: absolute; pointer-events: none; display: none; z-index: 99;
+        }
+        #lobby-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; z-index: 200; display: flex; justify-content: center; align-items: center;
+            flex-direction: column; color: white;
+        }
+        .lobby-card {
+            background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155;
+            width: 90%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center;
+        }
+        .slider-container { margin: 20px 0; text-align: left; }
+        .slider-layout { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        input[type="range"] { flex: 1; accent-color: #38bdf8; cursor: pointer; }
+        .badge { background: #38bdf8; color: #0f172a; padding: 4px 8px; border-radius: 4px; font-weight: bold; min-width: 24px; text-align: center; }
+        #color-picker-wrapper { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 15px 0; }
+        input[type="color"] { border: none; width: 40px; height: 30px; border-radius: 4px; cursor: pointer; background: none; }
+        #start-btn { width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background: #22c55e; border: none; border-radius: 6px; color: white; cursor: pointer; margin-top: 15px; }
+        #start-btn:hover { background: #16a34a; }
+        #mobile-instructions {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(15,23,42,0.8); color: #94a3b8; padding: 8px 16px; 
+            border-radius: 20px; font-size: 11px; pointer-events: none; z-index: 5; text-align: center;
+        }
+    </style>
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="lobby-overlay">
+        <div class="lobby-card">
+            <h2>3D RTS: Битва Фракций</h2>
+            <p style="color: #94a3b8; font-size: 13px;">Выберите режим и настройте масштаб сражения</p>
+            
+            <div id="color-picker-wrapper">
+                <label style="font-size: 13px; font-weight: bold;">Ваш цвет боевого знамени:</label>
+                <input type="color" id="player-color" value="#0284c7">
+            </div>
+
+            <div class="slider-container" id="offline-settings">
+                <label style="font-size: 12px; color: #cbd5e1; font-weight: bold;">КОЛИЧЕСТВО ФРАКЦИЙ (ОФЛАЙН ИИ):</label>
+                <div class="slider-layout">
+                    <input type="range" id="faction-slider" min="2" max="16" value="4">
+                    <span id="faction-badge" class="badge">4</span>
+                </div>
+            </div>
+
+            <button id="start-btn">🚀 НАЧАТЬ БИТВУ</button>
+        </div>
+    </div>
+
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Нажмите Enter для отправки..." autocomplete="off">
+            <button id="chat-send-btn">ОТПРАВИТЬ</button>
+        </div>
+    </div>
+
+    <div id="selection-box" class="select-box"></div>
+    <div id="mobile-instructions">鼠标 ПК: ЛКМ — рамка, ПКМ — приказ, КОЛЕСИКО — камера | 📱 СЕНСОР: Тап — выбор, 2-й тап — приказ</div>
+
+    <div id="ui">
+        <h1 id="faction-title">Штаб</h1>
+        <div class="gold-panel">🪙 <span id="gold-txt">100</span></div>
+        <p>Ваша армия: <span id="army-txt" style="color:#34d399; font-weight:bold;">1</span> юнитов</p>
+        
+        <div class="btn-group">
+            <button class="btn" id="buy-worker">РАБОЧИЙ (40 🪙)</button>
+            <button class="btn" id="buy-warrior">ВОИН (70 🪙)</button>
+        </div>
+        <button class="btn btn-blue" id="select-all">ВЫДЕЛИТЬ ВСЕХ СВОИХ</button>
+
+        <div id="bars"></div>
+    </div>
+
+    <div id="end-screen">
+        <div id="end-msg"></div>
+        <button onclick="location.reload()">В главное меню</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls, ground;
+        let isGameOver = false;
+        let chosenCount = 4;
+        let playerColorHex = 0x0284c7;
+        const myTeam = 'f_0';
+
+        const FACTIONS = {};
+        const allUnits = [];
+        const crystals = [];
+        let selectedUnits = [];
+        const bases = {};
+        const goldBalances = {};
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        const slider = document.getElementById('faction-slider');
+        const badge = document.getElementById('faction-badge');
+        if(slider) {
+            slider.addEventListener('input', (e) => { badge.innerText = e.target.value; });
+        }
+
+        window.setupFactionsConfig = function() {
+            const radius = 42;
+            for (let i = 0; i < chosenCount; i++) {
+                const key = `f_${i}`;
+                const angle = (i * (Math.PI * 2)) / chosenCount;
+                let color, name;
+
+                if (i === 0) {
+                    color = playerColorHex;
+                    name = isOnlineMode ? myPlayerName : "Игрок (Вы)";
+                } else {
+                    const hue = (i * (360 / chosenCount)) % 360;
+                    color = parseInt(new THREE.Color(`hsl(${hue}, 90%, 45%)`).getHexString(), 16);
+                    name = `Бот ИИ #${i}`;
+                }
+
+                FACTIONS[key] = {
+                    name: name, color: color,
+                    x: parseFloat((Math.cos(angle) * radius).toFixed(2)),
+                    z: parseFloat((Math.sin(angle) * radius).toFixed(2))
+                };
+                goldBalances[key] = 100;
+            }
+
+            const bars = document.getElementById('bars');
+            bars.innerHTML = '';
+            Object.keys(FACTIONS).forEach(key => {
+                const f = FACTIONS[key];
+                const div = document.createElement('div');
+                div.className = 'hp-bar-ui';
+                div.style.color = '#' + f.color.toString(16).padStart(6, '0');
+                div.innerHTML = `${f.name}: <span id="hp-${key}">600</span> HP`;
+                bars.appendChild(div);
+            });
+            
+            document.getElementById('faction-title').innerText = FACTIONS[myTeam].name || "Штаб";
+            document.getElementById('faction-title').style.color = '#' + FACTIONS[myTeam].color.toString(16);
+            document.getElementById('gold-txt').innerText = goldBalances[myTeam];
+        }
+
+        window.initGameEngine = function() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 65, 75);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.mouseButtons = { LEFT: -1, MIDDLE: THREE.MOUSE.ROTATE, RIGHT: -1 };
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+            sun.position.set(20, 80, 40);
+            scene.add(sun);
+
+            ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 }));
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+            scene.add(new THREE.GridHelper(120, 48, 0x475569, 0x334155));
+
+            const baseGeo = new THREE.BoxGeometry(6, 4, 6);
+            Object.keys(FACTIONS).forEach(key => {
+                const f = FACTIONS[key];
+                const bMesh = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: f.color }));
+                bMesh.position.set(f.x, 2, f.z);
+                bMesh.userData = { isBase: true, team: key, hp: 600, maxHp: 600 };
+                scene.add(bMesh);
+                bases[key] = bMesh;
+
+                window.createUnit(key, 'worker', f.x + (f.x > 0 ? -6 : 6), f.z + (f.z > 0 ? -6 : 6));
+            });
+
+            for (let i = 0; i < 10; i++) spawnCrystal();
+
+            initControls();
+            initChatSystem(); // Запуск логики чата
+            animate(0);
+        }
+
+        function createHealthBarMesh() {
+            const bgMat = new THREE.SpriteMaterial({ color: 0xef4444 });
+            const fgMat = new THREE.SpriteMaterial({ color: 0x10b981 });
+            const bgSprite = new THREE.Sprite(bgMat);
+            const fgSprite = new THREE.Sprite(fgMat);
+            
+            bgSprite.scale.set(2.0, 0.18, 1);
+            fgSprite.scale.set(2.0, 0.18, 1);
+            fgSprite.center.set(0, 0.5);
+            fgSprite.position.x = -1; 
+            bgSprite.position.y = 2.2;
+            bgSprite.add(fgSprite);
+            bgSprite.userData = { fg: fgSprite };
+            return bgSprite;
+        }
+
+        window.updateHealthBar = function(unit) {
+            const bar = unit.userData.healthBar;
+            if (!bar) return;
+            const pct = Math.max(0, unit.userData.hp / unit.userData.maxHp);
+            bar.userData.fg.scale.x = 2.0 * pct;
+        }
+
+        function spawnCrystal() {
+            const crys = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.5, 3, 5), new THREE.MeshStandardMaterial({ color: 0xeab308, emissive: 0x3f2001 }));
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * 25;
+            crys.position.set(Math.cos(angle) * r, 1.5, Math.sin(angle) * r);
+            crys.userData = { isCrystal: true, goldLeft: 100 };
+            scene.add(crys);
+            crystals.push(crys);
+        }
+
+        window.createUnit = function(team, type, x, z) {
+            let geo, baseColor = FACTIONS[team] ? FACTIONS[team].color : 0xffffff;
+            if (type === 'worker') geo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+            else geo = new THREE.SphereGeometry(0.9, 16, 16);
+
+            const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: baseColor }));
+            mesh.position.set(x, 0.75, z);
+
+            mesh.userData = {
+                team: team, type: type,
+                hp: type === 'warrior' ? 180 : 70, maxHp: type === 'warrior' ? 180 : 70,
+                speed: type === 'worker' ? 0.35 : 0.25,
+                mode: 'idle', targetPos: null, targetObj: null,
+                hasGold: false, baseColor: baseColor, lastAction: 0
+            };
+
+            const hb = createHealthBarMesh();
+            mesh.add(hb);
+            mesh.userData.healthBar = hb;
+
+            scene.add(mesh);
+            allUnits.push(mesh);
+            if(team === myTeam) updateArmyUI();
+        }
+
+        document.getElementById('buy-worker').addEventListener('click', (e) => { e.stopPropagation(); buyUnit('worker', 40); });
+        document.getElementById('buy-warrior').addEventListener('click', (e) => { e.stopPropagation(); buyUnit('warrior', 70); });
+        document.getElementById('select-all').addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectedUnits.forEach(u => u.material.color.setHex(u.userData.baseColor));
+            selectedUnits = allUnits.filter(u => u.userData.team === myTeam);
+            selectedUnits.forEach(u => u.material.color.setHex(0xfacc15));
+        });
+
+        function buyUnit(type, cost) {
+            if (goldBalances[myTeam] >= cost) {
+                goldBalances[myTeam] -= cost;
+                const f = FACTIONS[myTeam];
+                window.createUnit(myTeam, type, f.x + (f.x > 0 ? -5 : 5), f.z + (f.z > 0 ? -5 : 5));
+                document.getElementById('gold-txt').innerText = goldBalances[myTeam];
+            }
+        }
+        window.updateArmyUI = function() { document.getElementById('army-txt').innerText = allUnits.filter(u => u.userData.team === myTeam).length; }
+
+        function initControls() {
+            const selectionBox = document.getElementById('selection-box');
+            let isDrawing = false;
+            let startPoint = { x: 0, y: 0 };
+
+            function handleActionCommand(clientX, clientY) {
+                if (selectedUnits.length === 0) return;
+                mouse.x = (clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(scene.children);
+
+                if (intersects.length > 0) {
+                    const hit = intersects[0].object;
+                    const point = intersects[0].point;
+
+                    selectedUnits.forEach((u, idx) => {
+                        let ud = u.userData;
+                        if (hit.userData.isCrystal && ud.type === 'worker') {
+                            ud.mode = 'mining'; ud.targetObj = hit; ud.targetPos = hit.position.clone();
+                        } else if ((hit.userData.team && hit.userData.team !== myTeam) || (hit.userData.isBase && hit.userData.team !== myTeam)) {
+                            ud.mode = 'attacking'; ud.targetObj = hit; ud.targetPos = hit.position.clone();
+                        } else {
+                            ud.mode = 'moving'; ud.targetObj = null;
+                            const angle = (idx * (Math.PI * 2)) / Math.max(1, selectedUnits.length);
+                            const spread = Math.min(4, Math.sqrt(selectedUnits.length) * 0.8);
+                            ud.targetPos = new THREE.Vector3(
+                                point.x + Math.cos(angle) * (Math.random() * spread), 0.75, point.z + Math.sin(angle) * (Math.random() * spread)
+                            );
+                        }
+                    });
+                }
+            }
+
+            window.addEventListener('mousedown', (e) => {
+                if (isGameOver || e.target.closest('#ui') || e.target.closest('#chat-container')) return;
+                if (e.button === 2) { handleActionCommand(e.clientX, e.clientY); return; }
+                if (e.button === 0) {
+                    isDrawing = true;
+                    startPoint.x = e.clientX; startPoint.y = e.clientY;
+                    selectionBox.style.left = `${startPoint.x}px`; selectionBox.style.top = `${startPoint.y}px`;
+                    selectionBox.style.width = '0px'; selectionBox.style.height = '0px';
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                const left = Math.min(startPoint.x, e.clientX); const top = Math.min(startPoint.y, e.clientY);
+                const width = Math.abs(startPoint.x - e.clientX); const height = Math.abs(startPoint.y - e.clientY);
+                if (width > 4 || height > 4) {
+                    selectionBox.style.display = 'block'; selectionBox.style.left = `${left}px`; selectionBox.style.top = `${top}px`;
+                    selectionBox.style.width = `${width}px`; selectionBox.style.height = `${height}px`;
+                }
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (e.button === 2 || !isDrawing) { isDrawing = false; selectionBox.style.display = 'none'; return; }
+                isDrawing = false;
+                const width = Math.abs(startPoint.x - e.clientX); const height = Math.abs(startPoint.y - e.clientY);
+
+                selectedUnits.forEach(u => { if (u.parent) u.material.color.setHex(u.userData.baseColor); });
+                selectedUnits = [];
+
+              if (width > 10 || height > 10) {
+                    const xMin = Math.min(startPoint.x, e.clientX), xMax = Math.max(startPoint.x, e.clientX);
+                    const yMin = Math.min(startPoint.y, e.clientY), yMax = Math.max(startPoint.y, e.clientY);
+                    allUnits.filter(u => u.userData.team === myTeam).forEach(unit => {
+                        const wp = unit.position.clone().project(camera);
+                        const sx = (wp.x * 0.5 + 0.5) * window.innerWidth; const sy = (-(wp.y * 0.5) + 0.5) * window.innerHeight;
+                        if (sx >= xMin && sx <= xMax && sy >= yMin && sy <= yMax) { selectedUnits.push(unit); unit.material.color.setHex(0xfacc15); }
+                    });
+                } else {
+                    mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersects = raycaster.intersectObjects(scene.children);
+                    if (intersects.length > 0) {
+                        const hit = intersects[0].object;
+                        if (hit.userData.team === myTeam) { selectedUnits = [hit]; hit.material.color.setHex(0xfacc15); }
+                    }
+                }
+                selectionBox.style.display = 'none';
+            });
+
+            window.addEventListener('contextmenu', e => e.preventDefault());
+
+            window.addEventListener('touchstart', (e) => {
+                if (isGameOver || e.target.closest('#ui') || e.target.closest('#chat-container')) return;
+                const t = e.touches[0]; startPoint.x = t.clientX; startPoint.y = t.clientY;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (isGameOver || e.target.closest('#ui') || e.target.closest('#chat-container')) return;
+                const travelX = Math.abs(e.changedTouches[0].clientX - startPoint.x); const travelY = Math.abs(e.changedTouches[0].clientY - startPoint.y);
+                if (travelX > 15 || travelY > 15) return;
+
+                mouse.x = (startPoint.x / window.innerWidth) * 2 - 1; mouse.y = -(startPoint.y / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(scene.children);
+
+                if (intersects.length > 0) {
+                    const hit = intersects[0].object;
+                    if (selectedUnits.length > 0 && hit.userData.team !== myTeam) { handleActionCommand(startPoint.x, startPoint.y); }
+                    else if (hit.userData.team === myTeam) {
+                        selectedUnits.forEach(u => { if (u.parent) u.material.color.setHex(u.userData.baseColor); });
+                        selectedUnits = [hit]; hit.material.color.setHex(0xfacc15);
+                    }
+                }
+            });
+        }
+
+        window.runMultiFactionsAI = function(time) { staticAiLogic(time); }
+
+        let aiClock = 0, aiWaveTimer = 0;
+        function staticAiLogic(time) {
+            aiClock++;
+            if (aiClock % 120 === 0) {
+                Object.keys(FACTIONS).forEach(botKey => {
+                    if (botKey === myTeam) return;
+                    const bBase = bases[botKey]; if (!bBase || !bBase.parent) return;
+                    const bUnits = allUnits.filter(u => u.userData.team === botKey);
+                    const workers = bUnits.filter(u => u.userData.type === 'worker');
+
+                    if (workers.length < 4 && goldBalances[botKey] >= 40) {
+                        goldBalances[botKey] -= 40; window.createUnit(botKey, 'worker', FACTIONS[botKey].x + 4, FACTIONS[botKey].z + 4);
+                    } else if (goldBalances[botKey] >= 70 && bUnits.length < 15) {
+                        goldBalances[botKey] -= 70; window.createUnit(botKey, 'warrior', FACTIONS[botKey].x - 4, FACTIONS[botKey].z - 4);
+                    }
+                    bUnits.forEach(u => {
+                        if (u.userData.type === 'worker' && u.userData.mode === 'idle') {
+                            const actCrys = crystals.filter(c => c.parent);
+                            if (actCrys.length > 0) {
+                                const rc = actCrys[Math.floor(Math.random() * actCrys.length)];
+                                u.userData.mode = 'mining'; u.userData.targetObj = rc; u.userData.targetPos = rc.position.clone();
+                            }
+                        }
+                    });
+                });
+            }
+            if (time - aiWaveTimer > 25000) {
+                Object.keys(FACTIONS).forEach(botKey => {
+                    if (botKey === myTeam) return;
+                    const bUnits = allUnits.filter(u => u.userData.team === botKey);
+                    const targets = Object.keys(bases).filter(k => k !== botKey && bases[k] && bases[k].parent);
+                    if (targets.length > 0) {
+                        const targetBase = bases[targets[Math.floor(Math.random() * targets.length)]];
+                        bUnits.forEach(u => {
+                            if (u.userData.type === 'warrior' && u.userData.mode === 'idle') {
+                                u.userData.mode = 'attacking'; u.userData.targetObj = targetBase; u.userData.targetPos = targetBase.position.clone();
+                            }
+                        });
+                    }
+                });
+                aiWaveTimer = time;
+            }
+
+            // Симуляция фраз ботов в чате (один раз в 18 секунд)
+            if (aiClock % 1080 === 0) {
+                const keys = Object.keys(FACTIONS).filter(k => k !== myTeam && bases[k] && bases[k].parent);
+                if (keys.length > 0) {
+                    const bot = FACTIONS[keys[Math.floor(Math.random() * keys.length)]];
+                    const phrases = [
+                        "Вся золотая жила в центре принадлежит мне!",
+                        "Пора копить армию воинов.",
+                        "Кто на меня нападёт — сильно пожалеет!",
+                        "Рабочие, эффективнее добывайте кристаллы!",
+                        "Моя база под надёжной защитой."
+                    ];
+                    window.addChatMessage(bot.name, phrases[Math.floor(Math.random() * phrases.length)], bot.color);
+                }
+            }
+        }
+
+        window.processSimulation = function(time) { staticSimulationLogic(time); }
+
+        function staticSimulationLogic(time) {
+            allUnits.forEach(unit => {
+                const u = unit.userData;
+                if (u.targetPos) {
+                    const dist = unit.position.distanceTo(u.targetPos);
+                    if (dist > 1.5) unit.position.lerp(u.targetPos, u.speed / dist);
+                    else if (u.mode === 'moving') { u.targetPos = null; u.mode = 'idle'; }
+                }
+                if (u.type === 'warrior' && u.mode === 'idle') {
+                    const enemies = allUnits.filter(e => e.userData.team !== u.team);
+                    for (let enemy of enemies) {
+                        if (unit.position.distanceTo(enemy.position) < 18) {
+                            u.mode = 'attacking'; u.targetObj = enemy; u.targetPos = enemy.position.clone(); break;
+                        }
+                    }
+                }
+                if (u.mode === 'mining' && u.targetObj) {
+                    if (!u.targetObj.parent) { u.mode = 'idle'; u.targetPos = null; u.targetObj = null; return; }
+                    if (unit.position.distanceTo(u.targetObj.position) <= 3 && !u.hasGold) {
+                        if (time - u.lastAction > 1200) {
+                            u.hasGold = true; u.mode = 'returning'; u.targetPos = bases[u.team].position.clone();
+                            if (!selectedUnits.includes(unit)) unit.material.color.setHex(0xf59e0b);
+                            u.targetObj.userData.goldLeft -= 20; u.lastAction = time;
+                            if (u.targetObj.userData.goldLeft <= 0) {
+                                const idx = crystals.indexOf(u.targetObj); if (idx > -1) crystals.splice(idx, 1);
+                                scene.remove(u.targetObj);
+                            }
+                        }
+                    }
+                }
+                if (u.mode === 'returning' && u.hasGold) {
+                    const base = bases[u.team]; if (!base || !base.parent) { u.mode = 'idle'; u.hasGold = false; return; }
+                    if (unit.position.distanceTo(base.position) <= 4) {
+                        u.hasGold = false; if (!selectedUnits.includes(unit)) unit.material.color.setHex(u.baseColor);
+                        goldBalances[u.team] += 20;
+                        if (u.team === myTeam) document.getElementById('gold-txt').innerText = goldBalances[myTeam];
+                        if (u.targetObj && u.targetObj.parent) { u.mode = 'mining'; u.targetPos = u.targetObj.position.clone(); }
+                        else { u.mode = 'idle'; u.targetPos = null; u.targetObj = null; }
+                    }
+                }
+                if (!isOnlineMode && u.mode === 'attacking' && u.targetObj) {
+                    if (u.targetObj.parent) u.targetPos = u.targetObj.position.clone();
+                    if (unit.position.distanceTo(u.targetObj.position) <= 4) {
+                        if (time - u.lastAction > 800) {
+                            u.targetObj.userData.hp -= 20;
+                            if (u.targetObj.userData.isBase) { document.getElementById(`hp-${u.targetObj.userData.team}`).innerText = Math.max(0, u.targetObj.userData.hp); }
+                            else { window.updateHealthBar(u.targetObj); if (u.targetObj.userData.mode === 'idle') { u.targetObj.userData.mode = 'attacking'; u.targetObj.userData.targetObj = unit; } }
+                            if (u.targetObj.userData.hp <= 0) { window.killObject(u.targetObj); u.mode = 'idle'; u.targetPos = null; u.targetObj = null; }
+                            u.lastAction = time;
+                        }
+                    } else if (!u.targetObj.parent) { u.mode = 'idle'; u.targetPos = null; u.targetObj = null; }
+                }
+            });
+        }
+window.killObject = function(obj) {
+            scene.remove(obj);
+            if (obj.userData.isBase) {
+                const team = obj.userData.team; document.getElementById(`hp-${team}`).innerText = "РАЗРУШЕНА";
+                window.addChatMessage("СИСТЕМА", `Штаб фракции "${FACTIONS[team].name}" был полностью уничтожен!`, 0xef4444, true);
+
+                for (let i = allUnits.length - 1; i >= 0; i--) {
+                    if (allUnits[i].userData.team === team) { scene.remove(allUnits[i]); allUnits.splice(i, 1); }
+                }
+                if (team === myTeam) {
+                    isGameOver = true; document.getElementById('end-screen').style.display = 'flex';
+                    document.getElementById('end-msg').innerText = "ПОРАЖЕНИЕ!\nВаш штаб превратился в руины."; document.getElementById('end-msg').style.color = "#ef4444";
+                } else {
+                    const alive = Object.keys(bases).filter(k => k !== myTeam && bases[k] && bases[k].userData.hp > 0);
+                    if (alive.length === 0) {
+                        isGameOver = true; document.getElementById('end-screen').style.display = 'flex';
+                        document.getElementById('end-msg').innerText = "БЛИСТАТЕЛЬНАЯ ПОБЕДА!"; document.getElementById('end-msg').style.color = "#10b981";
+                    }
+                }
+            } else {
+                const idxA = allUnits.indexOf(obj); if (idxA > -1) allUnits.splice(idxA, 1);
+                const idxS = selectedUnits.indexOf(obj); if (idxS > -1) selectedUnits.splice(idxS, 1);
+                window.updateArmyUI();
+            }
+        }
+
+        let lastCrystalTime = 0;
+        function animate(time) {
+            requestAnimationFrame(animate);
+            controls.update();
+            if (!isGameOver) {
+                window.runMultiFactionsAI(time);
+                window.processSimulation(time);
+                if (time - lastCrystalTime > 5000) { if (crystals.length < 12) spawnCrystal(); lastCrystalTime = time; }
+            }
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ============================================================================
+        // ЯДРО СИСТЕМЫ ИГРОВОГО ЧАТА
+        // ============================================================================
+        function initChatSystem() {
+            const container = document.getElementById('chat-container');
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-send-btn');
+
+            container.style.display = 'flex'; // Отображаем чат в игре
+            window.addChatMessage("СИСТЕМА", "Матч начался! Напишите что-нибудь в чат.", 0x38bdf8, true);
+
+            function submitMsg() {
+                const text = input.value.trim();
+                if (!text) return;
+                input.value = '';
+
+                // Отображаем локально
+                window.addChatMessage(FACTIONS[myTeam].name || "Игрок", text, playerColorHex);
+
+                // Отправка по сети в Ably
+                if (isOnlineMode && networkChannel) {
+                    networkChannel.publish('network_chat', {
+                        senderName: myPlayerName, text: text, color: playerColorHex
+                    });
+                }
+            }
+
+            sendBtn.addEventListener('click', submitMsg);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitMsg();
+                e.stopPropagation(); // Предотвращаем срабатывание горячих клавиш игры
+            });
+        }
+
+        window.addChatMessage = function(sender, text, colorHex, isSystem = false) {
+            const chatBox = document.getElementById('chat-messages');
+            if (!chatBox) return;
+
+            const msgElement = document.createElement('div');
+            msgElement.className = 'chat-msg';
+            
+            const colorStr = '#' + colorHex.toString(16).padStart(6, '0');
+            
+            if (isSystem) {
+                msgElement.innerHTML = `<span class="chat-msg-system" style="color: ${colorStr}">[${sender}]: ${text}</span>`;
+            } else {
+                msgElement.innerHTML = `<span style="color: ${colorStr}; font-weight: bold;">${sender}:</span> <span style="color: #f1f5f9;">${text}</span>`;
+            }
+
+            chatBox.appendChild(msgElement);
+            chatBox.scrollTop = chatBox.scrollHeight; // Скролл вниз
+        }
+
+        // ============================================================================
+        // ОНЛАЙН СЕТЕВОЙ МОДУЛЬ (ПОЛНОСТЬЮ АДАПТИРОВАН И ВШИТ)
+        // ============================================================================
+        let isOnlineMode = false;
+        let ablyClient = null;
+        let networkChannel = null;
+        let myPlayerName = "Игрок";
+
+        function injectOnlineLobbyUI() {
+            const lobbyCard = document.querySelector('.lobby-card');
+            if (!lobbyCard) return;
+
+            const modeToggleDiv = document.createElement('div');
+            modeToggleDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 15px;';
+            modeToggleDiv.innerHTML = `
+                <button id="mode-offline-btn" class="btn" style="padding: 12px; background: #0284c7;">🤖 ОФЛАЙН</button>
+                <button id="mode-online-btn" class="btn" style="padding: 12px; background: #334155;">🌐 ОНЛАЙН</button>
+            `;
+            lobbyCard.insertBefore(modeToggleDiv, lobbyCard.firstChild);
+
+            const netSettingsDiv = document.createElement('div');
+            netSettingsDiv.id = 'net-settings-container';
+            netSettingsDiv.style.cssText = 'display: none; flex-direction: column; gap: 10px; margin: 15px 0; text-align: left;';
+            netSettingsDiv.innerHTML = `
+                <label style="font-size: 12px; color: #cbd5e1; font-weight: bold;">ВАШ НИКНЕЙМ:</label>
+                <input type="text" id="net-player-name" value="Командир_${Math.floor(Math.random()*900+100)}" style="padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size:13px;">
+                <label style="font-size: 12px; color: #cbd5e1; font-weight: bold;">ВЫБОР ИМЕНИ КОМНАТЫ:</label>
+                <input type="text" id="net-room-name" value="rts-room-1" style="padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size:13px;">
+            `;
+            lobbyCard.insertBefore(netSettingsDiv, document.getElementById('offline-settings'));
+
+            const offlineSettings = document.getElementById('offline-settings');
+            const offlineBtn = document.getElementById('mode-offline-btn');
+            const onlineBtn = document.getElementById('mode-online-btn');
+            const startBtn = document.getElementById('start-btn');
+
+            offlineBtn.addEventListener('click', () => {
+                isOnlineMode = false;
+                offlineBtn.style.background = '#0284c7'; onlineBtn.style.background = '#334155';
+                netSettingsDiv.style.display = 'none'; offlineSettings.style.display = 'block';
+                startBtn.innerText = '🚀 НАЧАТЬ БИТВУ';
+            });
+
+            onlineBtn.addEventListener('click', () => {
+                isOnlineMode = true;
+                offlineBtn.style.background = '#334155'; onlineBtn.style.background = '#6d28d9';
+                netSettingsDiv.style.display = 'flex'; offlineSettings.style.display = 'none';
+                startBtn.innerText = '📡 ПОДКЛЮЧИТЬСЯ К КОМНАТЕ';
+            });
+        }
+
+        function initOnlineNetwork() {
+            myPlayerName = document.getElementById('net-player-name').value.trim() || "Игрок";
+            const roomName = document.getElementById('net-room-name').value.trim() || "rts-room-1";
+
+            ablyClient = new Ably.Realtime('YqMfkQ.U3cQAQ:ga7PLsPxfwgJn5De6HZm4y6OvqOdkmiHIaIwy7NF9nM'); 
+            networkChannel = ablyClient.channels.get('rts-room-' + roomName);
+
+            networkChannel.subscribe('network_spawn', (msg) => {
+                const d = msg.data;
+                if (d.senderId !== ablyClient.connection.id) {
+                    if (!FACTIONS[d.team]) {
+                        FACTIONS[d.team] = { name: d.playerName, color: d.color, x: d.bx, z: d.bz };
+                        addNetworkBaseAndUI(d.team);
+                        window.addChatMessage("СИСТЕМА", `Игрок ${d.playerName} подключился к арене.`, d.color, true);
+                    }
+                    const curLen = allUnits.length;
+                    originalCreateUnit(d.team, d.type, d.x, d.z);
+                    if (allUnits.length > curLen) {
+                        allUnits[allUnits.length - 1].userData.netId = d.netId;
+                    }
+                }
+            });
+
+            networkChannel.subscribe('network_order', (msg) => {
+                const d = msg.data;
+                if (d.senderId !== ablyClient.connection.id) applyNetworkOrder(d);
+            });
+
+            networkChannel.subscribe('network_damage', (msg) => {
+                const d = msg.data;
+                if (d.senderId !== ablyClient.connection.id) applyNetworkDamage(d);
+            });
+
+            // Сетевая подписка на входящие текстовые сообщения чата
+            networkChannel.subscribe('network_chat', (msg) => {
+                const d = msg.data;
+                if (d.senderName !== myPlayerName) {
+                    window.addChatMessage(d.senderName, d.text, d.color);
+                }
+            });
+
+            setTimeout(() => {
+                const f = FACTIONS[myTeam];
+                networkChannel.publish('network_spawn', {
+                    senderId: ablyClient.connection.id, team: myTeam, playerName: myPlayerName,
+                    color: playerColorHex, type: 'worker', x: f.x + 4, z: f.z + 4, bx: f.x, bz: f.z,
+                    netId: 'init_' + Date.now()
+                });
+            }, 1000);
+
+            document.getElementById('game-status').innerText = `Сеть: "${roomName}" | Игрок: ${myPlayerName}`;
+        }
+
+        function addNetworkBaseAndUI(teamKey) {
+            if (bases[teamKey]) return;
+            const f = FACTIONS[teamKey];
+            const bMesh = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 6), new THREE.MeshStandardMaterial({ color: f.color }));
+            bMesh.position.set(f.x, 2, f.z); bMesh.userData = { isBase: true, team: teamKey, hp: 600, maxHp: 600 };
+            scene.add(bMesh); bases[teamKey] = bMesh; goldBalances[teamKey] = 100;
+
+            const bars = document.getElementById('bars');
+            const div = document.createElement('div'); div.className = 'hp-bar-ui';
+            div.style.color = '#' + f.color.toString(16).padStart(6, '0');
+            div.innerHTML = `${f.name}: <span id="hp-${teamKey}">600</span> HP`;
+            bars.appendChild(div);
+        }
+function applyNetworkOrder(d) {
+            const remoteUnits = allUnits.filter(u => u.userData.team === d.team);
+            const unit = remoteUnits.find(u => u.userData.netId === d.netId);
+            if (!unit) return;
+
+            unit.userData.mode = d.mode;
+            if (d.targetPos) unit.userData.targetPos = new THREE.Vector3(d.targetPos.x, d.targetPos.y, d.targetPos.z);
+            if (d.hasTargetObj) {
+                if (d.targetType === 'crystal') {
+                    unit.userData.targetObj = crystals.find(c => c.position.distanceTo(new THREE.Vector3(d.toX, 1.5, d.toZ)) < 1.5);
+                } else if (d.targetType === 'base') {
+                    unit.userData.targetObj = bases[d.targetKey];
+                } else if (d.targetType === 'unit') {
+                    unit.userData.targetObj = allUnits.find(u => u.userData.team === d.targetKey && u.userData.netId === d.targetNetId);
+                }
+            } else { unit.userData.targetObj = null; }
+        }
+
+        function applyNetworkDamage(d) {
+            if (d.isBase) {
+                const base = bases[d.targetKey];
+                if (base) {
+                    base.userData.hp = d.newHp; document.getElementById(`hp-${d.targetKey}`).innerText = Math.max(0, d.newHp);
+                    if (base.userData.hp <= 0) window.killObject(base);
+                }
+            } else {
+                const unit = allUnits.find(u => u.userData.team === d.targetKey && u.userData.netId === d.targetNetId);
+                if (unit) {
+                    unit.userData.hp = d.newHp; window.updateHealthBar(unit);
+                    if (unit.userData.hp <= 0) window.killObject(unit);
+                }
+            }
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            playerColorHex = parseInt(document.getElementById('player-color').value.replace('#', '0x'), 16);
+            document.getElementById('lobby-overlay').style.display = 'none';
+            
+            if (!isOnlineMode) {
+                chosenCount = parseInt(slider.value);
+                window.setupFactionsConfig();
+            } else {
+                chosenCount = 1; 
+                window.setupFactionsConfig();
+                FACTIONS[myTeam].name = document.getElementById('net-player-name').value.trim() || "Вы";
+                document.getElementById('faction-title').innerText = FACTIONS[myTeam].name;
+            }
+            window.initGameEngine();
+            if (isOnlineMode) initOnlineNetwork();
+        });
+
+        const originalCreateUnit = window.createUnit;
+        window.createUnit = function(team, type, x, z) {
+            originalCreateUnit(team, type, x, z);
+            if (isOnlineMode && team === myTeam && ablyClient && networkChannel) {
+                const myUnits = allUnits.filter(u => u.userData.team === myTeam);
+                const lastUnit = myUnits[myUnits.length - 1];
+                const generatedId = 'u_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+                lastUnit.userData.netId = generatedId;
+
+                const f = FACTIONS[myTeam];
+                networkChannel.publish('network_spawn', {
+                    senderId: ablyClient.connection.id, team: myTeam, playerName: myPlayerName,
+                    color: playerColorHex, type: type, x: x, z: z, bx: f.x, bz: f.z, netId: generatedId
+                });
+            }
+        };
+
+        window.addEventListener('mouseup', () => {
+            if (!isOnlineMode || !networkChannel || selectedUnits.length === 0) return;
+            setTimeout(() => {
+                selectedUnits.forEach(u => {
+                    let ud = u.userData;
+                    let packet = {
+                        senderId: ablyClient.connection.id, team: myTeam, netId: ud.netId, mode: ud.mode,
+                        targetPos: ud.targetPos ? { x: ud.targetPos.x, y: ud.targetPos.y, z: ud.targetPos.z } : null,
+                        hasTargetObj: ud.targetObj ? true : false
+                    };
+                    if (ud.targetObj) {
+                        if (ud.targetObj.userData.isCrystal) {
+                            packet.targetType = 'crystal'; packet.toX = ud.targetObj.position.x; packet.toZ = ud.targetObj.position.z;
+                        } else if (ud.targetObj.userData.isBase) {
+                            packet.targetType = 'base'; packet.targetKey = ud.targetObj.userData.team;
+                        } else {
+                            packet.targetType = 'unit'; packet.targetKey = ud.targetObj.userData.team; packet.targetNetId = ud.targetObj.userData.netId;
+                        }
+                    }
+                    networkChannel.publish('network_order', packet);
+                });
+            }, 50);
+        });
+
+        window.runMultiFactionsAI = function(time) {
+            if (isOnlineMode) return; 
+            staticAiLogic(time);
+        };
+
+        window.processSimulation = function(time) {
+            if (!isOnlineMode) { staticSimulationLogic(time); return; }
+
+            allUnits.forEach(unit => {
+                const u = unit.userData;
+                if (u.team === myTeam && u.mode === 'attacking' && u.targetObj && u.targetObj.parent) {
+                    if (unit.position.distanceTo(u.targetObj.position) <= 4) {
+                        if (time - u.lastAction > 800) {
+                            u.targetObj.userData.hp -= 20; u.lastAction = time;
+
+                            let damagePacket = {
+                                senderId: ablyClient.connection.id, isBase: u.targetObj.userData.isBase ? true : false,
+                                targetKey: u.targetObj.userData.team, newHp: u.targetObj.userData.hp
+                            };
+                            if (!u.targetObj.userData.isBase) {
+                                damagePacket.targetNetId = u.targetObj.userData.netId; window.updateHealthBar(u.targetObj);
+                            } else {
+                                document.getElementById(`hp-${u.targetObj.userData.team}`).innerText = Math.max(0, u.targetObj.userData.hp);
+                            }
+                            networkChannel.publish('network_damage', damagePacket);
+
+                            if (u.targetObj.userData.hp <= 0) {
+                                window.killObject(u.targetObj); u.mode = 'idle'; u.targetPos = null; u.targetObj = null;
+                            }
+                        }
+                    }
+                }
+            });
+
+            allUnits.forEach(unit => {
+                const u = unit.userData;
+                if (u.targetPos) {
+                    const dist = unit.position.distanceTo(u.targetPos);
+                    if (dist > 1.5) unit.position.grid = unit.position.lerp(u.targetPos, u.speed / dist);
+                    else if (u.mode === 'moving') { u.targetPos = null; u.mode = 'idle'; }
+                }
+                if (u.mode === 'mining' && u.targetObj && unit.position.distanceTo(u.targetObj.position) <= 3 && !u.hasGold) {
+                    if (time - u.lastAction > 1200) {
+                        u.hasGold = true; u.mode = 'returning'; u.targetPos = bases[u.team].position.clone();
+                        if (!selectedUnits.includes(unit)) unit.material.color.setHex(0xf59e0b);
+                        u.targetObj.userData.goldLeft -= 20; u.lastAction = time;
+                        if (u.targetObj.userData.goldLeft <= 0) {
+                            const idx = crystals.indexOf(u.targetObj); if (idx > -1) crystals.splice(idx, 1);
+                            scene.remove(u.targetObj);
+                        }
+                    }
+                }
+                if (u.mode === 'returning' && u.hasGold) {
+                    const base = bases[u.team];
+                    if (base && unit.position.distanceTo(base.position) <= 4) {
+                        u.hasGold = false; if (!selectedUnits.includes(unit)) unit.material.color.setHex(u.baseColor);
+                        goldBalances[u.team] += 20;
+                        if (u.team === myTeam) document.getElementById('gold-txt').innerText = goldBalances[myTeam];
+                        if (u.targetObj && u.targetObj.parent) { u.mode = 'mining'; u.targetPos = u.targetObj.position.clone(); }
+                        else { u.mode = 'idle'; u.targetPos = null; u.targetObj = null; }
+                    }
+                }
+            });
+        };
+
+        setTimeout(() => {
+            if (!document.getElementById('game-status')) {
+                const p = document.createElement('p'); p.id = 'game-status';
+                p.style.cssText = 'font-size:11px; color:#eab308; margin-top:8px; font-weight:bold;';
+                p.innerText = "Офлайн-матч."; document.getElementById('bars').appendChild(p);
+            }
+            injectOnlineLobbyUI();
+        }, 150);
+// ============================================================================
+// МОДУЛЬ: РАСШИРЕННАЯ КАРТА, ДЕФОРМАЦИЯ ЛАНДШАФТА И СУПЕР-РЕСУРСЫ
+// ============================================================================
+
+function upgradeMapAndResourcesSystem() {
+    // Внедряем CSS-стили панели редактора динамически через JS
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        #admin-panel {
+            position: absolute; top: 15px; right: 15px; color: white;
+            background: rgba(15, 23, 42, 0.95); padding: 20px; border-radius: 12px;
+            border: 1px solid #334155; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 100; display: none; flex-direction: column; gap: 10px;
+        }
+        .admin-title { margin: 0; font-size: 16px; color: #facc15; text-transform: uppercase; }
+        .admin-btn {
+            background: #64748b; color: white; border: none; padding: 8px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px;
+            text-align: left; transition: background 0.2s;
+        }
+        .admin-btn:hover { background: #475569; }
+        .admin-btn.active { background: #eab308; color: #0f172a; }
+        #admin-login-btn { background: #334155; color: #94a3b8; font-size: 11px; margin-top: 5px; cursor: pointer; border: none; padding: 5px; border-radius: 4px; }
+        #admin-login-btn:hover { background: #475569; color: white; }
+    `;
+    document.head.appendChild(styleElement);
+
+    const RESOURCE_TYPES = {
+        gold: { color: 0xeab308, emissive: 0x3f2001, baseGold: 100 },
+        ruby: { color: 0xef4444, emissive: 0x450a0a, baseGold: 250 },
+        obsidian: { color: 0x8b5cf6, emissive: 0x2e1065, baseGold: 500 }
+    };
+
+    let isAdmin = false;
+    let currentAdminTool = null; // 'spawn_gold', 'spawn_ruby', 'spawn_obsidian', 'raise_terrain', 'lower_terrain'
+    let isMouseDown = false;     // Флаг зажатой мыши для рисования рельефа
+    const ADMIN_PASSWORD = "admin777"; 
+
+    const MAP_SIZE = 600; 
+    const SEGMENTS = 120; // Количество сегментов сетки для плавного изменения рельефа
+
+    // Пересоздаем землю с большим количеством полигонов, чтобы её можно было гнуть
+    if (ground) {
+        scene.remove(ground);
+        const oldGrid = scene.children.find(c => c instanceof THREE.GridHelper);
+        if (oldGrid) scene.remove(oldGrid);
+
+        // ВАЖНО: Добавляем сегменты (SEGMENTS, SEGMENTS), иначе плоскость не согнется
+        const terrainGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, SEGMENTS, SEGMENTS);
+        
+        ground = new THREE.Mesh(
+            terrainGeo, 
+            new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85, flatShading: true }) // flatShading делает горы low-poly красивыми
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.set(0, 0, 0);
+        scene.add(ground);
+
+        scene.add(new THREE.GridHelper(MAP_SIZE, SEGMENTS, 0x475569, 0x334155));
+    }
+
+    // Функция деформации ландшафта (насыпь / копка)
+    function modifyTerrain(centerPoint, direction) {
+        const geometry = ground.geometry;
+        const positionAttribute = geometry.attributes.position;
+        
+        const brushRadius = 35; // Радиус кисти изменения земли
+        const brushStrength = 1.2; // Скорость изменения высоты за один тик
+        
+        // Проходим по всем вершинам сетки земли
+        for (let i = 0; i < positionAttribute.count; i++) {
+            // Получаем мировые координаты вершины (учитывая поворот PlaneGeometry)
+            const vx = positionAttribute.getX(i);
+            const vy = positionAttribute.getY(i); // В плоскости PlaneGeometry Y — это глубина, а Z — высота
+
+            // Переводим в 3D координаты сцены (у нас земля лежит на боку)
+            const worldX = vx;
+            const worldZ = -vy; 
+
+            // Считаем расстояние от клика до текущей вершины
+            const dx = worldX - centerPoint.x;
+            const dz = worldZ - centerPoint.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            if (distance < brushRadius) {
+                // Плавное затухание к краям кисти
+                const falloff = (1 - distance / brushRadius);
+                const currentHeight = positionAttribute.getZ(i); // В локальных координатах Z — это высота холма
+                
+                // Меняем высоту (плюс или минус)
+                const newHeight = currentHeight + (brushStrength * falloff * direction);
+                positionAttribute.setZ(i, newHeight);
+            }
+        }
+        
+        // Говорим Three.js, что геометрия изменилась, и нужно пересчитать тени
+        positionAttribute.needsUpdate = true;
+        geometry.computeVertexNormals();
+    }
+
+    // Спавн кристаллов с зависимостью от расстояния баз
+    window.spawnAdvancedCrystal = function(type = 'gold', customPos = null) {
+        const config = RESOURCE_TYPES[type];
+        const crys = new THREE.Mesh(
+            new THREE.CylinderGeometry(0, 2, 4, 5), 
+            new THREE.MeshStandardMaterial({ color: config.color, emissive: config.emissive })
+        );
+
+        if (customPos) {
+            crys.position.copy(customPos);
+            crys.position.y = 2;
+        } else {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * (MAP_SIZE / 2.2);
+            crys.position.set(Math.cos(angle) * r, 2, Math.sin(angle) * r);
+        }
+
+        let minDistanceToBase = Infinity;
+        Object.keys(bases).forEach(key => {
+            const base = bases[key];
+            if (base) {
+                const d = crys.position.distanceTo(base.position);
+                if (d < minDistanceToBase) minDistanceToBase = d;
+            }
+        });
+
+        const distanceBonus = Math.min(2, minDistanceToBase / 150); 
+        const randomMultiplier = 0.8 + Math.random() * 0.5;
+        const finalGold = Math.floor(config.baseGold * randomMultiplier * (1 + distanceBonus));
+
+        crys.userData = { 
+            isCrystal: true, 
+            resType: type,
+            goldLeft: finalGold,
+            maxGold: finalGold
+        };
+
+        scene.add(crys);
+        crystals.push(crys);
+    };
+
+    // Очистка старых ресурсов
+    while(crystals.length > 0) {
+        let c = crystals.pop();
+        scene.remove(c);
+    }
+
+    // Стартовый спавн ресурсов
+    for (let i = 0; i < 25; i++) window.spawnAdvancedCrystal('gold');
+    for (let i = 0; i < 15; i++) window.spawnAdvancedCrystal('ruby');
+    for (let i = 0; i < 8; i++) window.spawnAdvancedCrystal('obsidian');
+
+    // Логика UI Редактора
+    function createAdminUI() {
+        const uiPanel = document.getElementById('ui');
+        if (!uiPanel) return;
+
+        const loginBtn = document.createElement('button');
+        loginBtn.id = 'admin-login-btn';
+        loginBtn.innerText = '🔐 Войти как Админ';
+        uiPanel.appendChild(loginBtn);
+
+        const adminPanel = document.createElement('div');
+        adminPanel.id = 'admin-panel';
+        adminPanel.innerHTML = `
+            <h3 class="admin-title">🛠️ Редактор Ландшафта</h3>
+            <p style="font-size:11px; color:#94a3b8; margin: 4px 0;">Изменение земли (Зажать мышь):</p>
+            <button class="admin-btn" data-tool="raise_terrain">🌋 Насыпь (Вверх)</button>
+            <button class="admin-btn" data-tool="lower_terrain">🕳️ Копать (Вниз)</button>
+            <p style="font-size:11px; color:#94a3b8; margin: 4px 0;">Инструменты спавна:</p>
+            <button class="admin-btn" data-tool="spawn_gold">🟡 Кристалл Золота</button>
+            <button class="admin-btn" data-tool="spawn_ruby">🔴 Кристалл Рубина</button>
+            <button class="admin-btn" data-tool="spawn_obsidian">🟣 Кристалл Обсидиана</button>
+            <button class="admin-btn" id="admin-close-btn" style="background:#ef4444; margin-top:10px; text-align:center;">Выйти</button>
+        `;
+        document.body.appendChild(adminPanel);
+
+        loginBtn.addEventListener('click', () => {
+            const pass = prompt("Пароль:");
+            if (pass === ADMIN_PASSWORD) {
+                isAdmin = true;
+                adminPanel.style.display = 'flex';
+                loginBtn.style.display = 'none';
+            } else {
+                alert("Неверный пароль!");
+            }
+        });
+
+        adminPanel.querySelectorAll('.admin-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if(e.target.id === 'admin-close-btn') {
+                    isAdmin = false; currentAdminTool = null;
+                    adminPanel.style.display = 'none'; loginBtn.style.display = 'block';
+                    return;
+                }
+                adminPanel.querySelectorAll('.admin-btn').forEach(b => b.classList.remove('active'));
+                currentAdminTool = e.target.getAttribute('data-tool');
+                e.target.classList.add('active');
+            });
+        });
+
+        // Отслеживание зажатия мышки для плавного терраформинга
+        window.addEventListener('mousedown', (e) => { if(isAdmin) isMouseDown = true; });
+        window.addEventListener('mouseup', () => { isMouseDown = false; });
+
+        // Главный обработчик логики кликов и ведения мыши (mousemove)
+        function handleTerrainInteraction(e) {
+            if (!isAdmin || !currentAdminTool) return;
+            if (e.target.closest('#ui') || e.target.closest('#admin-panel') || e.target.closest('#chat-container')) return;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObject(ground); // Пересечение строго с землей
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+
+                if (currentAdminTool === 'raise_terrain' && isMouseDown) {
+                    modifyTerrain(point, 1); // 1 = Тянуть вверх
+                } else if (currentAdminTool === 'lower_terrain' && isMouseDown) {
+                    modifyTerrain(point, -1); // -1 = Вдавливать вниз
+                }
+            }
+        }
+
+        // Для рисования при движении
+        window.addEventListener('mousemove', handleTerrainInteraction);
+
+        // Для одиночных кликов по спавну кристаллов
+        window.addEventListener('click', (e) => {
+            if (!isAdmin || !currentAdminTool || currentAdminTool.includes('terrain')) return;
+            if (e.target.closest('#ui') || e.target.closest('#admin-panel')) return;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObject(ground);
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                if (currentAdminTool === 'spawn_gold') window.spawnAdvancedCrystal('gold', point);
+                if (currentAdminTool === 'spawn_ruby') window.spawnAdvancedCrystal('ruby', point);
+                if (currentAdminTool === 'spawn_obsidian') window.spawnAdvancedCrystal('obsidian', point);
+            }
+        });
+    }
+
+    createAdminUI();
+}
+
+// Автозапуск
+setTimeout(() => {
+    const startBtn = document.getElementById('start-btn');
+    if(startBtn) {
+        startBtn.addEventListener('click', () => {
+            setTimeout(() => { upgradeMapAndResourcesSystem(); }, 350); 
+      
+// ============================================================================
+// МОДУЛЬ: ДИНАМИЧЕСКИЙ ТЕРРАФОРМИНГ С УЧЕТОМ ВЫСОТЫ ЮНИТОВ, РЕСУРСОВ И СОХРАНЕНИЕМ
+// ============================================================================
+
+function initAdvancedEditorWithPhysics() {
+    // 1. Внедрение CSS-стилей для адаптивного адаптивного редактора карт
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        #admin-panel {
+            position: absolute; top: 15px; right: 15px; color: white;
+            background: rgba(15, 23, 42, 0.95); padding: 15px; border-radius: 12px;
+            border: 1px solid #334155; width: 260px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000; display: none; flex-direction: column; gap: 8px;
+            max-height: 85vh; overflow-y: auto;
+        }
+        .admin-title { margin: 0; font-size: 15px; color: #facc15; text-transform: uppercase; text-align: center;}
+        .admin-btn {
+            background: #475569; color: white; border: none; padding: 10px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px;
+            text-align: left; transition: background 0.2s; touch-action: manipulation;
+        }
+        .admin-btn.active { background: #eab308; color: #0f172a; }
+        #admin-login-btn { 
+            background: #1e293b; color: #94a3b8; font-size: 11px; margin-top: 5px; 
+            cursor: pointer; border: 1px solid #334155; padding: 6px; border-radius: 4px; 
+        }
+        .admin-row { display: flex; gap: 6px; }
+        .admin-row .admin-btn { flex: 1; text-align: center; }
+        
+        @media (max-width: 768px) {
+            #admin-panel {
+                top: auto; bottom: 20px; right: 10px; left: 10px; 
+                width: calc(100% - 40px); max-height: 45vh;
+                display: none; grid-template-columns: repeat(2, 1fr); gap: 6px;
+            }
+            .admin-title { grid-column: span 2; font-size: 13px; }
+            .admin-btn { padding: 12px; font-size: 11px; text-align: center; }
+            #admin-close-btn, .admin-row { grid-column: span 2; }
+            p.admin-label { grid-column: span 2; margin: 2px 0; font-size: 10px; }
+        }
+    `;
+    document.head.appendChild(styleElement);
+
+    // Внутреннее состояние редактора
+    let isAdmin = false;
+    let currentAdminTool = null; 
+    let isEditingActive = false; 
+    const ADMIN_PASSWORD = "admin777"; 
+    
+    const MAP_SIZE = 400; // Оптимальный увеличенный размер карты
+    const SEGMENTS = 80;  // Плотность сетки (полигоны ландшафта)
+
+    // Вспомогательный вертикальный рейкастер для определения высоты в точках X, Z
+    const heightRaycaster = new THREE.Raycaster();
+    const upVector = new THREE.Vector3(0, 1, 0);
+
+    // Функция перестройки земли с полигонами
+    function rebuildMeshTerrain() {
+        if (!ground) return;
+        scene.remove(ground);
+        const oldGrid = scene.children.find(c => c instanceof THREE.GridHelper);
+        if (oldGrid) scene.remove(oldGrid);
+
+        // Создаем сегментированную плоскость
+        const terrainGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, SEGMENTS, SEGMENTS);
+        ground = new THREE.Mesh(
+            terrainGeo, 
+            new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85, flatShading: true })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.set(0, 0, 0);
+        scene.add(ground);
+
+        scene.add(new THREE.GridHelper(MAP_SIZE, SEGMENTS, 0x475569, 0x334155));
+
+        // Автоматическая загрузка ранее сохраненной карты
+        loadTerrainData();
+    }
+    rebuildMeshTerrain();
+
+    // Функция получения точной высоты Y ландшафта в любой мировой координате X, Z
+    window.getTerrainHeight = function(x, z) {
+        if (!ground) return 0;
+        // Пускаем луч сверху вниз через указанную координату
+        heightRaycaster.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
+        const intersects = heightRaycaster.intersectObject(ground);
+        if (intersects.length > 0) {
+            return intersects[0].point.y;
+        }
+        return 0;
+    };
+
+    // Деформация рельефа (поднятие / опускание)
+    function modifyTerrainAtPoint(centerPoint, direction) {
+        if (!ground) return;
+        const geometry = ground.geometry;
+        const positionAttribute = geometry.attributes.position;
+        const brushRadius = 25; 
+        const brushStrength = 0.8; 
+
+        for (let i = 0; i < positionAttribute.count; i++) {
+            const vx = positionAttribute.getX(i);
+            const vy = positionAttribute.getY(i);
+            const worldX = vx;
+            const worldZ = -vy; 
+
+            const dx = worldX - centerPoint.x;
+            const dz = worldZ - centerPoint.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            if (distance < brushRadius) {
+                const falloff = (1 - distance / brushRadius);
+                const currentHeight = positionAttribute.getZ(i);
+                positionAttribute.setZ(i, currentHeight + (brushStrength * falloff * direction));
+            }
+        }
+        positionAttribute.needsUpdate = true;
+        geometry.computeVertexNormals();
+
+        // Обновляем высоту баз, если земля под ними ушла вверх/вниз
+        Object.keys(bases).forEach(key => {
+            const base = bases[key];
+            if (base && base.parent) {
+                base.position.y = window.getTerrainHeight(base.position.x, base.position.z) + 2;
+            }
+        });
+    }
+
+    // Сохранение ландшафта в localStorage
+    function saveTerrainData() {
+        if (!ground) return;
+        const heights = [];
+        const positionAttribute = ground.geometry.attributes.position;
+        for (let i = 0; i < positionAttribute.count; i++) {
+            heights.push(parseFloat(positionAttribute.getZ(i).toFixed(2)));
+        }
+        localStorage.setItem('saved_rts_map_heights', JSON.stringify(heights));
+        alert("Ландшафт карты успешно сохранен!");
+    }
+
+    // Загрузка ландшафта из localStorage
+    function loadTerrainData() {
+        if (!ground) return;
+        const saved = localStorage.getItem('saved_rts_map_heights');
+        if (!saved) return;
+        try {
+            const heights = JSON.parse(saved);
+            const positionAttribute = ground.geometry.attributes.position;
+            if (heights.length === positionAttribute.count) {
+                for (let i = 0; i < positionAttribute.count; i++) {
+                    positionAttribute.setZ(i, heights[i]);
+                }
+                positionAttribute.needsUpdate = true;
+                ground.geometry.computeVertexNormals();
+            }
+        } catch (e) { console.error("Ошибка загрузки карты:", e); }
+    }
+
+    // Сброс карты к идеально плоской
+    function clearTerrainData() {
+        if (!ground || !confirm("Вы уверены, что хотите полностью выровнять карту?")) return;
+        const positionAttribute = ground.geometry.attributes.position;
+        for (let i = 0; i < positionAttribute.count; i++) {
+            positionAttribute.setZ(i, 0);
+        }
+        positionAttribute.needsUpdate = true;
+        ground.geometry.computeVertexNormals();
+        localStorage.removeItem('saved_rts_map_heights');
+    }
+
+    // Создание пользовательского интерфейса
+    function createEditorUI() {
+        const uiPanel = document.getElementById('ui');
+        if (!uiPanel) return;
+
+        const loginBtn = document.createElement('button');
+        loginBtn.id = 'admin-login-btn';
+        loginBtn.innerText = '🔐 Войти как Админ';
+        uiPanel.appendChild(loginBtn);
+
+        const adminPanel = document.createElement('div');
+        adminPanel.id = 'admin-panel';
+        adminPanel.innerHTML = `
+            <h3 class="admin-title">🛠️ Редактор Карт 3D</h3>
+            <p class="admin-label" style="font-size:10px; color:#94a3b8; margin:2px 0;">Рельеф (Зажать и водить):</p>
+            <button class="admin-btn" data-tool="raise">🌋 Насыпь (Вверх)</button>
+            <button class="admin-btn" data-tool="lower">🕳️ Копать (Вниз)</button>
+            <p class="admin-label" style="font-size:10px; color:#94a3b8; margin:2px 0;">Ресурсы (Клик по карте):</p>
+            <button class="admin-btn" data-tool="spawn_gold">🟡 Кристалл Золота</button>
+            <p class="admin-label" style="font-size:10px; color:#94a3b8; margin:2px 0;">Управление файлами данных:</p>
+            <div class="admin-row">
+                <button class="admin-btn" id="admin-save-btn" style="background:#10b981;">💾 Сохранить</button>
+                <button class="admin-btn" id="admin-clear-btn" style="background:#64748b;">🧹 Сброс</button>
+            </div>
+            <button class="admin-btn" id="admin-close-btn" style="background:#ef4444; margin-top:5px; text-align:center;">Выйти</button>
+        `;
+        document.body.appendChild(adminPanel);
+
+        loginBtn.addEventListener('click', () => {
+            const pass = prompt("Пароль разработчика:");
+            if (pass === ADMIN_PASSWORD) {
+                isAdmin = true;
+                adminPanel.style.display = window.innerWidth <= 768 ? 'grid' : 'flex';
+                loginBtn.style.display = 'none';
+            } else { alert("Неверный пароль!"); }
+        });
+
+        adminPanel.querySelectorAll('.admin-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.id;
+                if (id === 'admin-close-btn') {
+                    isAdmin = false; currentAdminTool = null;
+                    adminPanel.style.display = 'none'; loginBtn.style.display = 'block';
+                    return;
+                }
+                if (id === 'admin-save-btn') { saveTerrainData(); return; }
+                if (id === 'admin-clear-btn') { clearTerrainData(); return; }
+
+                adminPanel.querySelectorAll('.admin-btn').forEach(b => b.classList.remove('active'));
+                currentAdminTool = e.target.getAttribute('data-tool');
+                e.target.classList.add('active');
+            });
+        });
+
+        // Слушатели ввода мыши и тача
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.closest('#ui') || e.target.closest('#admin-panel') || e.target.closest('#chat-container')) return;
+            if (isAdmin && currentAdminTool) isEditingActive = true;
+        });
+        window.addEventListener('mouseup', () => isEditingActive = false);
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('#ui') || e.target.closest('#admin-panel') || e.target.closest('#chat-container')) return;
+            if (isAdmin && currentAdminTool) isEditingActive = true;
+        }, { passive: true });
+        window.addEventListener('touchend', () => isEditingActive = false);
+
+        function handlePointerInteraction(clientX, clientY, isDrag) {
+            if (!isAdmin || !currentAdminTool) return;
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObject(ground);
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                if (isDrag) {
+                    if (currentAdminTool === 'raise') modifyTerrainAtPoint(point, 1);
+                    if (currentAdminTool === 'lower') modifyTerrainAtPoint(point, -1);
+                } else {
+                    // Клик (без перетаскивания) для спавна
+                    if (currentAdminTool === 'spawn_gold' && typeof window.spawnAdvancedCrystal === 'function') {
+                        window.spawnAdvancedCrystal('gold', point);
+                    } else if (currentAdminTool === 'spawn_gold') {
+                        // Резервный спавн, если функция структуры изначального кода не была инициализирована
+                        const crys = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.5, 3, 5), new THREE.MeshStandardMaterial({ color: 0xeab308, emissive: 0x3f2001 }));
+                        crys.position.copy(point);
+                        crys.position.y = window.getTerrainHeight(point.x, point.z) + 1.5;
+                        crys.userData = { isCrystal: true, goldLeft: 100 };
+                        scene.add(crys);
+                        crystals.push(crys);
+                    }
+                }
+            }
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (isEditingActive) handlePointerInteraction(e.clientX, e.clientY, true);
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (isEditingActive && e.touches.length > 0) {
+                handlePointerInteraction(e.touches[0].clientX, e.touches[0].clientY, true);
+            }
+        }, { passive: true });
+
+        window.addEventListener('click', (e) => {
+            if (e.target.closest('#ui') || e.target.closest('#admin-panel') || e.target.closest('#chat-container')) return;
+            if (isAdmin && currentAdminTool && !currentAdminTool.includes('raise') && !currentAdminTool.includes('lower')) {
+                handlePointerInteraction(e.clientX, e.clientY, false);
+            }
+        });
+    }
+
+    // ХУК СИМУЛЯЦИИ ФИЗИКИ ВЫСОТЫ ЮНИТОВ И РЕСУРСОВ
+    // Перехватываем стандартную симуляцию, чтобы заставить всё подстраиваться под Y-координату земли
+    const originalProcessSimulation = window.processSimulation;
+    window.processSimulation = function(time) {
+        // Сначала вызываем базовую логику перемещения по X и Z
+        if (typeof originalProcessSimulation === 'function') {
+            originalProcessSimulation(time);
+        }
+
+        // 1. Корректируем высоту юнитов в зависимости от рельефа
+        allUnits.forEach(unit => {
+            if (unit && unit.parent) {
+                const terrainY = window.getTerrainHeight(unit.position.x, unit.position.z);
+                // Плавно притягиваем юнита к земле по оси Y
+                unit.position.y = THREE.MathUtils.lerp(unit.position.y, terrainY + 0.75, 0.3);
+            }
+        });
+
+        // 2. Корректируем высоту ресурсов (кристаллов) под деформируемую землю
+        crystals.forEach(crys => {
+            if (crys && crys.parent) {
+                const terrainY = window.getTerrainHeight(crys.position.x, crys.position.z);
+                crys.position.y = terrainY + 1.5; // Смещение половины высоты цилиндра
+            }
+        });
+    };
+
+    createEditorUI();
+}
+
+// Перехват кнопки старта для запуска расширения физики и редактора ландшафта
+setTimeout(() => {
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', () => {
+            setTimeout(() => {
+                initAdvancedEditorWithPhysics();
+            }, 450);
+        });
+    }
+}, 50);
+
+    </script>
+    <script src="https://dmamax.netlify.app/legal-module.js"></script>
+    
+</body>
+</html>
