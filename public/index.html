@@ -352,65 +352,37 @@
 
 <!-- от-->
  
-<div id="statsPanel" style="display:none; position:fixed; bottom:80px; right:20px; background:#fff; padding:15px; border:1px solid #ccc; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); z-index:10000;">
-    <div id="statsContent">Загрузка...</div>
-</div>
-
-<button id="statsBtn" style="position:fixed; bottom:20px; right:20px; padding:10px 20px; cursor:pointer; z-index:10001; background:#007bff; color:#fff; border:none; border-radius:5px;">
-    Статистика
+<button id="statsBtn" style="position:fixed; bottom:20px; right:20px; padding:10px 20px; cursor:pointer; z-index:9999;">
+  Статистика
 </button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    const supabase = supabase.createClient('https://wautmbihtasxbytvyohg.supabase.co', 'sb_publishable_5aDMn1ZsYfkAFzpu_RbyXQ_qPeHSN4s');
+  const supabase = supabase.createClient('https://wautmbihtasxbytvyohg.supabase.co', 'sb_publishable_5aDMn1ZsYfkAFzpu_RbyXQ_qPeHSN4s');
 
-    // Логирование посещения
-    async function logVisit() {
-        await supabase.from('visitors').insert([{
-            user_agent: navigator.userAgent,
-            referrer: document.referrer || 'direct',
-            page_url: window.location.href
-        }]);
-    }
+  // Добавляем визит
+  supabase.from('visitors').insert([{}]).then(() => console.log("Визит зафиксирован"));
 
-    // Получение статистики по периодам
-    async function fetchStats() {
-        const panel = document.getElementById('statsPanel');
-        const content = document.getElementById('statsContent');
-        
-        if (panel.style.display === 'block') {
-            panel.style.display = 'none';
-            return;
-        }
-        
-        panel.style.display = 'block';
-        content.innerHTML = 'Загрузка данных...';
+  // Считаем статистику
+  document.getElementById('statsBtn').onclick = async () => {
+    const now = new Date();
+    
+    const getCount = async (days) => {
+      const dateLimit = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabase.from('visitors').select('*', { count: 'exact', head: true }).gte('created_at', dateLimit);
+      return count;
+    };
 
-        const getDateAgo = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const results = await Promise.all([
+      getCount(1),   // День
+      getCount(7),   // Неделя
+      getCount(30),  // Месяц
+      getCount(90),  // 3 месяца
+      getCount(365)  // Год
+    ]);
 
-        try {
-            const [day, week, month, year] = await Promise.all([
-                supabase.from('visitors').select('*', { count: 'exact', head: true }).gte('created_at', getDateAgo(1)),
-                supabase.from('visitors').select('*', { count: 'exact', head: true }).gte('created_at', getDateAgo(7)),
-                supabase.from('visitors').select('*', { count: 'exact', head: true }).gte('created_at', getDateAgo(30)),
-                supabase.from('visitors').select('*', { count: 'exact', head: true }).gte('created_at', getDateAgo(365))
-            ]);
-
-            content.innerHTML = `
-                <strong>Посещаемость:</strong><br>
-                За 24ч: ${day.count}<br>
-                За 7дн: ${week.count}<br>
-                За 30дн: ${month.count}<br>
-                За год: ${year.count}
-            `;
-        } catch (e) {
-            content.innerHTML = 'Ошибка загрузки';
-        }
-    }
-
-    // Инициализация
-    logVisit();
-    document.getElementById('statsBtn').addEventListener('click', fetchStats);
+    alert(`Статистика:\nДень: ${results[0]}\nНеделя: ${results[1]}\nМесяц: ${results[2]}\n3 Месяца: ${results[3]}\nГод: ${results[4]}`);
+  };
 </script>
  
 
