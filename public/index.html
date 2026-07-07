@@ -36,7 +36,7 @@
 
 <!-- Карточка для Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="tyavkich — Экосистема Web3 развлечений">
+<meta name="twitter:title" content="tuchka4u — Экосистема Web3 развлечений">
 <meta name="twitter:description" content="Увлекательные блокчейн-игры и инновационные приложения на платформе tuchka4u.">
 
 <!-- Микроразметка Schema.org (Тип "DataCatalog" для витрины приложений, валюта EUR для Европы) -->
@@ -361,14 +361,24 @@
 
 <!-- от-->
  <script>
-// 1. Инициализация Supabase (замените данные)
-const supabase = supabase.createClient('https://ycuchhdiiklxepiclaai.supabase.co', 'sb_publishable_KqSjs5maaUG_dEgFv-pWLQ_eOB4Wuea');
-// 2. Логика записи визита
+
+     // --- КОНФИГУРАЦИЯ (Меняйте только здесь) ---
+const CONFIG = {
+    SUPABASE_URL: '',
+    SUPABASE_KEY: '',
+    THEME_COLOR: '#3eaf7c', // Цвет кнопки
+    Z_INDEX: '2147483647'   // Максимальный приоритет поверх всего
+};
+// ------------------------------------------
+
+const supabase = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+
+// 1. Трекинг
 async function trackVisit() {
     await supabase.rpc('track_visit', { path: window.location.pathname });
 }
 
-// 3. Логика генерации статистики
+// 2. Генерация отчета
 async function renderAnalytics(elementId) {
     const { data } = await supabase
         .from('page_visits')
@@ -383,32 +393,37 @@ async function renderAnalytics(elementId) {
 
     const container = document.getElementById(elementId);
     container.innerHTML = `
-        <table style="width:100%; border-collapse: collapse; font-family: sans-serif;">
+        <h4 style="margin:0 0 10px 0;">Статистика посещений</h4>
+        <table style="width:100%; border-collapse: collapse; font-size: 12px; color: #333;">
             <tr style="background: #f4f4f4;"><th>Дата</th><th>Визитов</th></tr>
             ${Object.entries(stats).map(([date, count]) => `
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 8px;">${date}</td>
-                    <td style="padding: 8px;">${count}</td>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 5px;">${date}</td>
+                    <td style="padding: 5px; text-align: center;">${count}</td>
                 </tr>
             `).join('')}
         </table>
     `;
 }
 
-// 4. Логика создания кнопки
+// 3. Создание UI (Кнопка + Окно)
 function initAnalyticsUI() {
     const btn = document.createElement('button');
-    btn.innerText = '📊 Статистика';
+    btn.innerText = '📊'; // Можно оставить только иконку для компактности
     Object.assign(btn.style, {
-        position: 'fixed', bottom: '20px', right: '20px', padding: '12px',
-        background: '#3eaf7c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', zIndex: '9999'
+        position: 'fixed', bottom: '20px', right: '20px', padding: '10px',
+        background: CONFIG.THEME_COLOR, color: 'white', border: 'none', 
+        borderRadius: '50%', cursor: 'pointer', zIndex: CONFIG.Z_INDEX,
+        width: '50px', height: '50px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
     });
 
     const popup = document.createElement('div');
     popup.id = 'analytics-popup';
     Object.assign(popup.style, {
-        display: 'none', position: 'fixed', bottom: '70px', right: '20px',
-        width: '300px', background: 'white', padding: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', borderRadius: '8px', zIndex: '9998'
+        display: 'none', position: 'fixed', bottom: '80px', right: '20px',
+        width: '280px', background: 'white', padding: '15px', 
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)', borderRadius: '12px', 
+        zIndex: CONFIG.Z_INDEX, border: '1px solid #ddd'
     });
 
     document.body.append(btn, popup);
@@ -427,6 +442,11 @@ function initAnalyticsUI() {
 // Запуск
 trackVisit();
 document.addEventListener('DOMContentLoaded', initAnalyticsUI);
+         
+
+
+
+  
 </script>
 
 
