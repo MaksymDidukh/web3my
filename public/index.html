@@ -362,14 +362,13 @@
 <!-- от-->
  <script>
 
-     // --- КОНФИГУРАЦИЯ (Меняйте только здесь) ---
+     // --- КОНФИГУРАЦИЯ ---
 const CONFIG = {
-    SUPABASE_URL: 'https://ycuchhdiiklxepiclaai.supabase.co',
-    SUPABASE_KEY: 'sb_publishable_KqSjs5maaUG_dEgFv-pWLQ_eOB4Wuea',
-    THEME_COLOR: '#3eaf7c', // Цвет кнопки
-    Z_INDEX: '2147483647'   // Максимальный приоритет поверх всего
+    SUPABASE_URL: 'ВАШ_URL',
+    SUPABASE_KEY: 'ВАШ_ANON_KEY',
+    THEME_COLOR: '#3eaf7c',
+    Z_INDEX: '2147483647'
 };
-// ------------------------------------------
 
 const supabase = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 
@@ -378,72 +377,76 @@ async function trackVisit() {
     await supabase.rpc('track_visit', { path: window.location.pathname });
 }
 
-// 2. Генерация отчета
-async function renderAnalytics(elementId) {
+// 2. Получение данных (с учетом периода)
+async function getStatsData(period = 'day') {
     const { data } = await supabase
         .from('page_visits')
         .select('created_at')
         .order('created_at', { ascending: false });
 
-    const stats = data.reduce((acc, row) => {
-        const date = new Date(row.created_at).toLocaleDateString();
-        acc[date] = (acc[date] || 0) + 1;
+    return data.reduce((acc, row) => {
+        const date = new Date(row.created_at);
+        let key;
+        if (period === 'day') key = date.toLocaleDateString();
+        else if (period === 'month') key = `${date.getMonth() + 1}.${date.getFullYear()}`;
+        else key = date.getFullYear();
+        
+        acc[key] = (acc[key] || 0) + 1;
         return acc;
     }, {});
+}
 
-    const container = document.getElementById(elementId);
-    container.innerHTML = `
-        <h4 style="margin:0 0 10px 0;">Статистика посещений</h4>
-        <table style="width:100%; border-collapse: collapse; font-size: 12px; color: #333;">
-            <tr style="background: #f4f4f4;"><th>Дата</th><th>Визитов</th></tr>
-            ${Object.entries(stats).map(([date, count]) => `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 5px;">${date}</td>
-                    <td style="padding: 5px; text-align: center;">${count}</td>
-                </tr>
-            `).join('')}
+// 3. Рендер виджета
+async function renderWidget(period = 'day') {
+    const popup = document.getElementById('analytics-popup');
+    popup.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <button onclick="updateStats('day')">День</button>
+            <button onclick="updateStats('month')">Месяц</button>
+            <button onclick="updateStats('year')">Год</button>
+        </div>
+        <div id="stats-content">Загрузка...</div>
+    `;
+    
+    const stats = await getStatsData(period);
+    document.getElementById('stats-content').innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            ${Object.entries(stats).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}
         </table>
     `;
 }
 
-// 3. Создание UI (Кнопка + Окно)
+// Глобальная функция для обновления
+window.updateStats = renderWidget;
+
+// 4. UI Кнопка
 function initAnalyticsUI() {
     const btn = document.createElement('button');
-    btn.innerText = '📊'; // Можно оставить только иконку для компактности
+    btn.innerHTML = '📊';
     Object.assign(btn.style, {
-        position: 'fixed', bottom: '20px', right: '20px', padding: '10px',
-        background: CONFIG.THEME_COLOR, color: 'white', border: 'none', 
-        borderRadius: '50%', cursor: 'pointer', zIndex: CONFIG.Z_INDEX,
-        width: '50px', height: '50px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+        position: 'fixed', bottom: '20px', right: '20px', width: '50px', height: '50px',
+        background: CONFIG.THEME_COLOR, color: 'white', border: 'none', borderRadius: '50%',
+        cursor: 'pointer', zIndex: CONFIG.Z_INDEX, boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
     });
 
     const popup = document.createElement('div');
     popup.id = 'analytics-popup';
     Object.assign(popup.style, {
         display: 'none', position: 'fixed', bottom: '80px', right: '20px',
-        width: '280px', background: 'white', padding: '15px', 
-        boxShadow: '0 10px 25px rgba(0,0,0,0.3)', borderRadius: '12px', 
-        zIndex: CONFIG.Z_INDEX, border: '1px solid #ddd'
+        width: '250px', background: 'white', padding: '15px', borderRadius: '12px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.3)', zIndex: CONFIG.Z_INDEX
     });
 
     document.body.append(btn, popup);
-
-    btn.onclick = async () => {
-        if (popup.style.display === 'none') {
-            popup.style.display = 'block';
-            popup.innerHTML = 'Загрузка...';
-            await renderAnalytics('analytics-popup');
-        } else {
-            popup.style.display = 'none';
-        }
+    btn.onclick = () => {
+        popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+        if (popup.style.display === 'block') renderWidget();
     };
 }
 
-// Запуск
 trackVisit();
 document.addEventListener('DOMContentLoaded', initAnalyticsUI);
-         
-
+     
 
 
   
