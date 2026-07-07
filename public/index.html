@@ -351,8 +351,74 @@
     <div class="viewport-container" id="viewport"></div>
 
 <!-- от-->
- 
+ <script>
+// 1. Инициализация Supabase (замените данные)
+const supabase = supabase.createClient('https://ycuchhdiiklxepiclaai.supabase.co', 'sb_publishable_KqSjs5maaUG_dEgFv-pWLQ_eOB4Wuea');
+// 2. Логика записи визита
+async function trackVisit() {
+    await supabase.rpc('track_visit', { path: window.location.pathname });
+}
 
+// 3. Логика генерации статистики
+async function renderAnalytics(elementId) {
+    const { data } = await supabase
+        .from('page_visits')
+        .select('created_at')
+        .order('created_at', { ascending: false });
+
+    const stats = data.reduce((acc, row) => {
+        const date = new Date(row.created_at).toLocaleDateString();
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+    }, {});
+
+    const container = document.getElementById(elementId);
+    container.innerHTML = `
+        <table style="width:100%; border-collapse: collapse; font-family: sans-serif;">
+            <tr style="background: #f4f4f4;"><th>Дата</th><th>Визитов</th></tr>
+            ${Object.entries(stats).map(([date, count]) => `
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px;">${date}</td>
+                    <td style="padding: 8px;">${count}</td>
+                </tr>
+            `).join('')}
+        </table>
+    `;
+}
+
+// 4. Логика создания кнопки
+function initAnalyticsUI() {
+    const btn = document.createElement('button');
+    btn.innerText = '📊 Статистика';
+    Object.assign(btn.style, {
+        position: 'fixed', bottom: '20px', right: '20px', padding: '12px',
+        background: '#3eaf7c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', zIndex: '9999'
+    });
+
+    const popup = document.createElement('div');
+    popup.id = 'analytics-popup';
+    Object.assign(popup.style, {
+        display: 'none', position: 'fixed', bottom: '70px', right: '20px',
+        width: '300px', background: 'white', padding: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', borderRadius: '8px', zIndex: '9998'
+    });
+
+    document.body.append(btn, popup);
+
+    btn.onclick = async () => {
+        if (popup.style.display === 'none') {
+            popup.style.display = 'block';
+            popup.innerHTML = 'Загрузка...';
+            await renderAnalytics('analytics-popup');
+        } else {
+            popup.style.display = 'none';
+        }
+    };
+}
+
+// Запуск
+trackVisit();
+document.addEventListener('DOMContentLoaded', initAnalyticsUI);
+</script>
 
 
  
